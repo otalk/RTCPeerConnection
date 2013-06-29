@@ -1,0 +1,23 @@
+{
+  "name": "rtcpeerconnection",
+  "version": "0.0.0",
+  "description": "A tiny browser module that gives normalizes and simplifies the API for WebRTC peer connections.",
+  "main": "rtcpeerconnection.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HenrikJoreteg/RTCPeerConnection"
+  },
+  "keywords": [
+    "browser",
+    "RTCPeerConnection",
+    "WebRTC"
+  ],
+  "author": "Henrik Joreteg <henrik@andyet.net>",
+  "license": "MIT",
+  "dependencies": {
+    "wildemitter": "0.0.5"
+  },
+  "devDependencies": {
+    "browserify": "2.x"
+  }
+}
