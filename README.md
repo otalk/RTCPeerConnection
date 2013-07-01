@@ -105,7 +105,7 @@ pc.offer({
         }
     }, 
     function (err, offer) {
-        if (!err) connection.send('offer, offer);
+        if (!err) connection.send('offer, offer');
     }
 );
 
