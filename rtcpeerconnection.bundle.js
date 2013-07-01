@@ -123,7 +123,34 @@ PeerConnection.prototype.close = function () {
 
 module.exports = PeerConnection;
 
-},{"wildemitter":2,"webrtcsupport":3}],2:[function(require,module,exports){
+},{"webrtcsupport":2,"wildemitter":3}],2:[function(require,module,exports){
+// created by @HenrikJoreteg
+var PC = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+var IceCandidate = window.RTCIceCandidate || window.mozRTCIceCandidate;
+var SessionDescription = window.RTCSessionDescription || window.mozRTCSessionDescription;
+var prefix = function () {
+    if (window.mozRTCPeerConnection) {
+        return 'moz';
+    } else if (window.webkitRTCPeerConnection) {
+        return 'webkit';
+    }
+}();
+var screenSharing = navigator.userAgent.match('Chrome') && parseInt(navigator.userAgent.match(/Chrome\/(.*) /)[1], 10) >= 26;
+var webAudio = !!window.webkitAudioContext;
+
+// export support flags and constructors
+module.exports = {
+    support: !!PC,
+    dataChannel: !!(PC && PC.prototype.createDataChannel),
+    prefix: prefix,
+    webAudio: webAudio,
+    screenSharing: screenSharing,
+    PeerConnection: PC,
+    SessionDescription: SessionDescription,
+    IceCandidate: IceCandidate
+};
+
+},{}],3:[function(require,module,exports){
 /*
 WildEmitter.js is a slim little event emitter by @henrikjoreteg largely based 
 on @visionmedia's Emitter from UI Kit.
@@ -258,33 +285,6 @@ WildEmitter.prototype.getWildcardCallbacks = function (eventName) {
         }
     }
     return result;
-};
-
-},{}],3:[function(require,module,exports){
-// created by @HenrikJoreteg
-var PC = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
-var IceCandidate = window.RTCIceCandidate || window.mozRTCIceCandidate;
-var SessionDescription = window.RTCSessionDescription || window.mozRTCSessionDescription;
-var prefix = function () {
-    if (window.mozRTCPeerConnection) {
-        return 'moz';
-    } else if (window.webkitRTCPeerConnection) {
-        return 'webkit';
-    }
-}();
-var screenSharing = navigator.userAgent.match('Chrome') && parseInt(navigator.userAgent.match(/Chrome\/(.*) /)[1], 10) >= 26;
-var webAudio = !!window.webkitAudioContext;
-
-// export support flags and constructors
-module.exports = {
-    support: !!PC,
-    dataChannel: !!(PC && PC.prototype.createDataChannel),
-    prefix: prefix,
-    webAudio: webAudio,
-    screenSharing: screenSharing,
-    PeerConnection: PC,
-    SessionDescription: SessionDescription,
-    IceCandidate: IceCandidate
 };
 
 },{}]},{},[1])(1)
