@@ -49,13 +49,14 @@ PeerConnection.prototype.processIce = function (candidate) {
 
 PeerConnection.prototype.offer = function (constraints, cb) {
     var self = this;
-    var mediaConstraints = constraints || {
+    var hasConstraints = arguments.length === 2;
+    var mediaConstraints = hasConstraints ? constraints : {
             mandatory: {
                 OfferToReceiveAudio: true,
                 OfferToReceiveVideo: true
             }
         };
-    var callback = arguments.length === 2 ? cb : constraints;
+    var callback = hasConstraints ? cb : constraints;
 
     this.pc.createOffer(function (sessionDescription) {
         self.pc.setLocalDescription(sessionDescription);

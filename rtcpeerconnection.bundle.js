@@ -1,129 +1,5 @@
 (function(e){if("function"==typeof bootstrap)bootstrap("peerconnection",e);else if("object"==typeof exports)module.exports=e();else if("function"==typeof define&&define.amd)define(e);else if("undefined"!=typeof ses){if(!ses.ok())return;ses.makePeerConnection=e}else"undefined"!=typeof window?window.PeerConnection=e():global.PeerConnection=e()})(function(){var define,ses,bootstrap,module,exports;
 return (function(e,t,n){function i(n,s){if(!t[n]){if(!e[n]){var o=typeof require=="function"&&require;if(!s&&o)return o(n,!0);if(r)return r(n,!0);throw new Error("Cannot find module '"+n+"'")}var u=t[n]={exports:{}};e[n][0].call(u.exports,function(t){var r=e[n][1][t];return i(r?r:t)},u,u.exports)}return t[n].exports}var r=typeof require=="function"&&require;for(var s=0;s<n.length;s++)i(n[s]);return i})({1:[function(require,module,exports){
-var WildEmitter = require('wildemitter');
-var webrtc = require('webrtcsupport');
-
-
-function PeerConnection(config, constraints) {
-    this.pc = new webrtc.PeerConnection(config, constraints);
-    WildEmitter.call(this);
-    this.pc.onicecandidate = this._onIce.bind(this);
-    this.pc.onaddstream = this._onAddStream.bind(this);
-    this.pc.onremovestream = this._onRemoveStream.bind(this);
-
-    if (config.debug) {
-        this.on('*', function (eventName, event) {
-            console.log('PeerConnection event:', eventName, event);
-        });
-    }
-}
-
-PeerConnection.prototype = Object.create(WildEmitter.prototype, {
-    constructor: {
-        value: PeerConnection
-    }
-});
-
-PeerConnection.prototype.addStream = function (stream) {
-    this.localStream = stream;
-    this.pc.addStream(stream);
-};
-
-PeerConnection.prototype._onIce = function (event) {
-    if (event.candidate) {
-        this.emit('ice', event.candidate);
-    } else {
-        this.emit('endOfCandidates');
-    }
-};
-
-PeerConnection.prototype._onAddStream = function (event) {
-    this.emit('addStream', event);
-};
-
-PeerConnection.prototype._onRemoveStream = function (event) {
-    this.emit('removeStream', event);
-};
-
-PeerConnection.prototype.processIce = function (candidate) {
-    this.pc.addIceCandidate(new webrtc.IceCandidate(candidate));
-};
-
-PeerConnection.prototype.offer = function (constraints, cb) {
-    var self = this;
-    var mediaConstraints = constraints || {
-            mandatory: {
-                OfferToReceiveAudio: true,
-                OfferToReceiveVideo: true
-            }
-        };
-    var callback = arguments.length === 2 ? cb : constraints;
-
-    this.pc.createOffer(function (sessionDescription) {
-        self.pc.setLocalDescription(sessionDescription);
-        self.emit('offer', sessionDescription);
-        if (callback) callback(sessionDescription);
-    }, null, mediaConstraints);
-};
-
-PeerConnection.prototype.answerAudioOnly = function (offer, cb) {
-    var mediaConstraints = {
-            mandatory: {
-                OfferToReceiveAudio: true,
-                OfferToReceiveVideo: false
-            }
-        };
-
-    this._answer(offer, mediaConstraints, cb);
-};
-
-PeerConnection.prototype.answerVideoOnly = function (offer, cb) {
-    var mediaConstraints = {
-            mandatory: {
-                OfferToReceiveAudio: false,
-                OfferToReceiveVideo: true
-            }
-        };
-
-    this._answer(offer, mediaConstraints, cb);
-};
-
-PeerConnection.prototype._answer = function (offer, constraints, cb) {
-    var self = this;
-    this.pc.setRemoteDescription(new webrtc.SessionDescription(offer));
-    this.pc.createAnswer(function (sessionDescription) {
-        self.pc.setLocalDescription(sessionDescription);
-        self.emit('answer', sessionDescription);
-        if (cb) cb(sessionDescription);
-    }, null, constraints);
-};
-
-PeerConnection.prototype.answer = function (offer, constraints, cb) {
-    var self = this;
-    var hasConstraints = arguments.length === 3;
-    var callback = hasConstraints ? cb : constraints;
-    var mediaConstraints = hasConstraints ? constraints : {
-            mandatory: {
-                OfferToReceiveAudio: true,
-                OfferToReceiveVideo: true
-            }
-        };
-
-    this._answer(offer, mediaConstraints, callback);
-};
-
-PeerConnection.prototype.handleAnswer = function (answer) {
-    this.pc.setRemoteDescription(new webrtc.SessionDescription(answer));
-};
-
-PeerConnection.prototype.close = function () {
-    this.pc.close();
-    this.emit('close');
-};
-
-module.exports = PeerConnection;
-
-},{"wildemitter":2,"webrtcsupport":3}],2:[function(require,module,exports){
 /*
 WildEmitter.js is a slim little event emitter by @henrikjoreteg largely based 
 on @visionmedia's Emitter from UI Kit.
@@ -260,7 +136,132 @@ WildEmitter.prototype.getWildcardCallbacks = function (eventName) {
     return result;
 };
 
-},{}],3:[function(require,module,exports){
+},{}],2:[function(require,module,exports){
+var WildEmitter = require('wildemitter');
+var webrtc = require('webrtcsupport');
+
+
+function PeerConnection(config, constraints) {
+    this.pc = new webrtc.PeerConnection(config, constraints);
+    WildEmitter.call(this);
+    this.pc.onicecandidate = this._onIce.bind(this);
+    this.pc.onaddstream = this._onAddStream.bind(this);
+    this.pc.onremovestream = this._onRemoveStream.bind(this);
+
+    if (config.debug) {
+        this.on('*', function (eventName, event) {
+            console.log('PeerConnection event:', eventName, event);
+        });
+    }
+}
+
+PeerConnection.prototype = Object.create(WildEmitter.prototype, {
+    constructor: {
+        value: PeerConnection
+    }
+});
+
+PeerConnection.prototype.addStream = function (stream) {
+    this.localStream = stream;
+    this.pc.addStream(stream);
+};
+
+PeerConnection.prototype._onIce = function (event) {
+    if (event.candidate) {
+        this.emit('ice', event.candidate);
+    } else {
+        this.emit('endOfCandidates');
+    }
+};
+
+PeerConnection.prototype._onAddStream = function (event) {
+    this.emit('addStream', event);
+};
+
+PeerConnection.prototype._onRemoveStream = function (event) {
+    this.emit('removeStream', event);
+};
+
+PeerConnection.prototype.processIce = function (candidate) {
+    this.pc.addIceCandidate(new webrtc.IceCandidate(candidate));
+};
+
+PeerConnection.prototype.offer = function (constraints, cb) {
+    var self = this;
+    var hasConstraints = arguments.length === 2;
+    var mediaConstraints = hasConstraints ? constraints : {
+            mandatory: {
+                OfferToReceiveAudio: true,
+                OfferToReceiveVideo: true
+            }
+        };
+    var callback = hasConstraints ? cb : constraints;
+
+    this.pc.createOffer(function (sessionDescription) {
+        self.pc.setLocalDescription(sessionDescription);
+        self.emit('offer', sessionDescription);
+        if (callback) callback(sessionDescription);
+    }, null, mediaConstraints);
+};
+
+PeerConnection.prototype.answerAudioOnly = function (offer, cb) {
+    var mediaConstraints = {
+            mandatory: {
+                OfferToReceiveAudio: true,
+                OfferToReceiveVideo: false
+            }
+        };
+
+    this._answer(offer, mediaConstraints, cb);
+};
+
+PeerConnection.prototype.answerVideoOnly = function (offer, cb) {
+    var mediaConstraints = {
+            mandatory: {
+                OfferToReceiveAudio: false,
+                OfferToReceiveVideo: true
+            }
+        };
+
+    this._answer(offer, mediaConstraints, cb);
+};
+
+PeerConnection.prototype._answer = function (offer, constraints, cb) {
+    var self = this;
+    this.pc.setRemoteDescription(new webrtc.SessionDescription(offer));
+    this.pc.createAnswer(function (sessionDescription) {
+        self.pc.setLocalDescription(sessionDescription);
+        self.emit('answer', sessionDescription);
+        if (cb) cb(sessionDescription);
+    }, null, constraints);
+};
+
+PeerConnection.prototype.answer = function (offer, constraints, cb) {
+    var self = this;
+    var hasConstraints = arguments.length === 3;
+    var callback = hasConstraints ? cb : constraints;
+    var mediaConstraints = hasConstraints ? constraints : {
+            mandatory: {
+                OfferToReceiveAudio: true,
+                OfferToReceiveVideo: true
+            }
+        };
+
+    this._answer(offer, mediaConstraints, callback);
+};
+
+PeerConnection.prototype.handleAnswer = function (answer) {
+    this.pc.setRemoteDescription(new webrtc.SessionDescription(answer));
+};
+
+PeerConnection.prototype.close = function () {
+    this.pc.close();
+    this.emit('close');
+};
+
+module.exports = PeerConnection;
+
+},{"wildemitter":1,"webrtcsupport":3}],3:[function(require,module,exports){
 // created by @HenrikJoreteg
 var PC = window.mozRTCPeerConnection || window.webkitRTCPeerConnection || window.RTCPeerConnection;
 var IceCandidate = window.mozRTCIceCandidate || window.RTCIceCandidate;
@@ -287,6 +288,6 @@ module.exports = {
     IceCandidate: IceCandidate
 };
 
-},{}]},{},[1])(1)
+},{}]},{},[2])(2)
 });
 ;
