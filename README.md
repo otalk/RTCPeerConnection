@@ -1,4 +1,4 @@
-# PeerConnection
+# RTCPeerConnection
 
 
 ## What is this?
@@ -20,6 +20,7 @@ npm install rtcpeerconnection
 
 
 ### Instantiation
+
 Instantiation takes the same options as a normal peer connection constructor:
 
 ```js
@@ -78,6 +79,10 @@ pc.on('close', function () { ... });
 
 ### Methods
 
+Note that all callbacks follow the "error first" convention. Meaning, rather than pass a success and fail callback, you pass a single callback.
+
+If there is an error, the first argument passed to the callback will be a truthy value (the error itself).
+
 The whole offer/answer cycle looks like this:
 
 ```js
@@ -99,8 +104,8 @@ pc.offer({
             OfferToReceiveVideo: false
         }
     }, 
-    function (offer) {
-        // offer
+    function (err, offer) {
+        if (!err) connection.send('offer, offer);
     }
 );
 
@@ -108,22 +113,22 @@ pc.offer({
 // with various options
 connection.on('offer', function (offer) {
     // you can just call answer
-    pc.answer(offer, function (answer) {
-        connection.send('answer', answer);
+    pc.answer(offer, function (err, answer) {
+        if (!err) connection.send('answer', answer);
     });
 
     // you can call answer with contstraints
-    pc.answer(offer, MY_CONSTRAINTS, function (answer) {
-        connection.send('answer', answer);
+    pc.answer(offer, MY_CONSTRAINTS, function (err, answer) {
+        if (!err) connection.send('answer', answer);
     });    
 
     // or you can use one of the shortcuts answers
 
     // for video only
-    pc.answerVideoOnly(offer, function (answer) { ... });
+    pc.answerVideoOnly(offer, function (err, answer) { ... });
 
     // and audio only
-    pc.answerAudioOnly(offer, function (answer) { ... });
+    pc.answerAudioOnly(offer, function (err, answer) { ... });
 });
 
 // when you get an answer, you just call

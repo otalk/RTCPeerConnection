@@ -58,11 +58,18 @@ PeerConnection.prototype.offer = function (constraints, cb) {
         };
     var callback = hasConstraints ? cb : constraints;
 
-    this.pc.createOffer(function (sessionDescription) {
-        self.pc.setLocalDescription(sessionDescription);
-        self.emit('offer', sessionDescription);
-        if (callback) callback(sessionDescription);
-    }, null, mediaConstraints);
+    this.pc.createOffer(
+        function (sessionDescription) {
+            self.pc.setLocalDescription(sessionDescription);
+            self.emit('offer', sessionDescription);
+            if (callback) callback(null, sessionDescription);
+        },
+        function (err) {
+            self.emit('error', err);
+            if (callback) callback(err);
+        },
+        mediaConstraints
+    );
 };
 
 PeerConnection.prototype.answerAudioOnly = function (offer, cb) {
@@ -90,11 +97,17 @@ PeerConnection.prototype.answerVideoOnly = function (offer, cb) {
 PeerConnection.prototype._answer = function (offer, constraints, cb) {
     var self = this;
     this.pc.setRemoteDescription(new webrtc.SessionDescription(offer));
-    this.pc.createAnswer(function (sessionDescription) {
-        self.pc.setLocalDescription(sessionDescription);
-        self.emit('answer', sessionDescription);
-        if (cb) cb(sessionDescription);
-    }, null, constraints);
+    this.pc.createAnswer(
+        function (sessionDescription) {
+            self.pc.setLocalDescription(sessionDescription);
+            self.emit('answer', sessionDescription);
+            if (cb) cb(null, sessionDescription);
+        }, function (err) {
+            self.emit('error', err);
+            if (cb) cb(err);
+        },
+        constraints
+    );
 };
 
 PeerConnection.prototype.answer = function (offer, constraints, cb) {
