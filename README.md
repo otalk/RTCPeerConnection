@@ -1,9 +1,5 @@
 # PeerConnection
 
-## Warning
-
-This is fresh and untested!
-
 
 ## What is this?
 
@@ -21,6 +17,142 @@ npm install rtcpeerconnection
 ```
 
 ## How to use it
+
+
+### Instantiation
+Instantiation takes the same options as a normal peer connection constructor:
+
+```js
+var PeerConnection = require('rtcpeerconnection');
+
+
+// init it like a normal peer connection object
+// passing in ice servers/constraints
+var pc = new PeerConnection({servers}, {constraints});
+```
+
+
+### Events
+
+
+Unlike stock Peer Connections this is an event emitter. Powered by [WildEmitter](http://github.com/henrikjoreteg/wildemitter) which has a very familiar API if you're used to node.js/jQUery/Backbone but also includes a wildcard handler so you can easily debug events. Just do `emitter.on('*')` to log them out or whatnot.
+
+But instead of doing `pc.onicecandidate = function () {}` on a peer connection you listen for events like this:
+
+
+```js
+
+// ice candidates
+pc.on('ice', function (candidate) {
+    // it's your job to send these to someone
+    connection.send('ice', candidate);
+});
+
+// you can listen for end of candidates (not particularly useful)
+pc.on('endOfCandidates', function () {
+    // no more ice candidates
+});
+
+// remote stream added
+pc.on('streamAdded', function (stream) {
+    // do something with the remote stream
+    // probably attach it to a <video> element
+    // and play it.
+});
+
+// remote stream removed
+pc.on('streamRemoved', function (stream) {
+    // remote stream removed
+    // now you could hide/disable removed video
+});
+
+// you can chose to listen for events for 
+// offers and answers instead, if you prefer 
+pc.on('answer', function (answer) { ... });
+pc.on('offer', function (offer) { ... });
+
+// on peer connection close
+pc.on('close', function () { ... });
+```
+
+
+### Methods
+
+The whole offer/answer cycle looks like this:
+
+```js
+// assumptions
+var pc = new PeerConnection(servers, constraints);
+var connection = new RealTimeConnection(); // could be socket.io or whatever
+
+
+// create an offer
+pc.offer(function (offer) {
+    connection.send('offer', offer)
+});
+
+// you can also optionally pass in constraints
+// when creating an offer.
+pc.offer({
+        mandatory: {
+            OfferToReceiveAudio: true,
+            OfferToReceiveVideo: false
+        }
+    }, 
+    function (offer) {
+        // offer
+    }
+);
+
+// when you get an offer, you can answer
+// with various options
+connection.on('offer', function (offer) {
+    // you can just call answer
+    pc.answer(offer, function (answer) {
+        connection.send('answer', answer);
+    });
+
+    // you can call answer with contstraints
+    pc.answer(offer, MY_CONSTRAINTS, function (answer) {
+        connection.send('answer', answer);
+    });    
+
+    // or you can use one of the shortcuts answers
+
+    // for video only
+    pc.answerVideoOnly(offer, function (answer) { ... });
+
+    // and audio only
+    pc.answerAudioOnly(offer, function (answer) { ... });
+});
+
+// when you get an answer, you just call
+// handleAnswer
+connection.on('answer', function (answer) {
+    pc.handleAnswer(answer);
+});
+
+// the only other thing you have to do is listen, transmit, and process ice candidates
+
+// you have to send them when generated
+pc.on('ice', function (candidate) {
+    connection.send('ice', candidate);
+});
+
+// process incoming ones
+connection.on('ice', function (candidate) {
+    pc.processIce(candidate);
+});
+```
+
+
+That's it!
+
+
+## More
+
+If you want higher level functionality look at [SimpleWebRTC](http://simplewebrtc.com) that uses this library.
+
 
 ## License
 
