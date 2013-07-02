@@ -83,11 +83,11 @@ PeerConnection.prototype.answerAudioOnly = function (offer, cb) {
     this._answer(offer, mediaConstraints, cb);
 };
 
-PeerConnection.prototype.answerVideoOnly = function (offer, cb) {
+PeerConnection.prototype.answerBroadcastOnly = function (offer, cb) {
     var mediaConstraints = {
             mandatory: {
                 OfferToReceiveAudio: false,
-                OfferToReceiveVideo: true
+                OfferToReceiveVideo: false
             }
         };
 
