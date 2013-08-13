@@ -11,6 +11,7 @@ var prefix = function () {
         return 'webkit';
     }
 }();
+var MediaStream = window.webkitMediaStream || window.MediaStream;
 var screenSharing = navigator.userAgent.match('Chrome') && parseInt(navigator.userAgent.match(/Chrome\/(.*) /)[1], 10) >= 26;
 var AudioContext = window.webkitAudioContext || window.AudioContext;
 
@@ -20,6 +21,7 @@ module.exports = {
     dataChannel: !!(PC && PC.prototype && PC.prototype.createDataChannel),
     prefix: prefix,
     webAudio: !!(AudioContext && AudioContext.prototype.createMediaStreamSource),
+    mediaStream: !!(MediaStream && MediaStream.prototype.removeTrack),
     screenSharing: screenSharing,
     AudioContext: AudioContext,
     PeerConnection: PC,
