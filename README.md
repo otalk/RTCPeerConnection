@@ -9,6 +9,7 @@ It gives us a cleaner (cross-browser) way to handle offer/answer and is based on
 
 If you're not using browserify or you want AMD support use `rtcpeerconnection.bundle.js`.
 
+It also applies the SDP hack for lifting data transfer speed limits imposed by chrome by default. It modifies the "AS" or application specific maximum bandwidth setting from 30 kilobits / sec to 100 Mbps. This is really handy for file transfers, etc. It can be disabled by passing `{sdpHack: false}` as part of your config as passed in the first argument. 
 
 ## Installing
 
@@ -28,8 +29,11 @@ var PeerConnection = require('rtcpeerconnection');
 
 
 // init it like a normal peer connection object
-// passing in ice servers/constraints
-var pc = new PeerConnection({servers}, {constraints});
+// passing in ice servers/constraints the initial server config
+// also takes a couple other options:
+// sdpHack: false (to not use the SDP hack as described above)
+// debug: true (to log out all emitted events)
+var pc = new PeerConnection({config servers as usual}, {constraints as to regular PC});
 ```
 
 
@@ -87,7 +91,7 @@ The whole offer/answer cycle looks like this:
 
 ```js
 // assumptions
-var pc = new PeerConnection(servers, constraints);
+var pc = new PeerConnection(config, constraints);
 var connection = new RealTimeConnection(); // could be socket.io or whatever
 
 
