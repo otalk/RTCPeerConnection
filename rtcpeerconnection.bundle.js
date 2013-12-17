@@ -26,7 +26,7 @@ var AudioContext = window.webkitAudioContext || window.AudioContext;
 // export support flags and constructors.prototype && PC
 module.exports = {
     support: !!PC,
-    dataChannel: isChrome || isFirefox || (PC.prototype && PC.prototype.createDataChannel),
+    dataChannel: isChrome || isFirefox || (PC && PC.prototype && PC.prototype.createDataChannel),
     prefix: prefix,
     webAudio: !!(AudioContext && AudioContext.prototype.createMediaStreamSource),
     mediaStream: !!(MediaStream && MediaStream.prototype.removeTrack),
@@ -36,7 +36,6 @@ module.exports = {
     SessionDescription: SessionDescription,
     IceCandidate: IceCandidate
 };
-
 
 },{}],2:[function(require,module,exports){
 /*

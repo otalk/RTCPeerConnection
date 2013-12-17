@@ -1,6 +1,6 @@
 {
   "name": "rtcpeerconnection",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A tiny browser module that gives normalizes and simplifies the API for WebRTC peer connections.",
   "main": "rtcpeerconnection.js",
   "repository": {
@@ -16,7 +16,7 @@
   "license": "MIT",
   "dependencies": {
     "wildemitter": "0.0.5",
-    "webrtcsupport": "0.7.0"
+    "webrtcsupport": "0.7.1"
   },
   "devDependencies": {
     "browserify": "2.x"
