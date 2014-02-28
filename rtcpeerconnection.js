@@ -1,11 +1,15 @@
-var WildEmitter = require('wildemitter');
+var _ = require('underscore');
+var util = require('util');
 var webrtc = require('webrtcsupport');
+var SJJ = require('sdp-jingle-json');
+var WildEmitter = require('wildemitter');
 
 
 function PeerConnection(config, constraints) {
     var item;
-    this.pc = new webrtc.PeerConnection(config, constraints);
     WildEmitter.call(this);
+
+    this.pc = new webrtc.PeerConnection(config, constraints);
 
     // proxy some events directly
     this.pc.onremovestream = this.emit.bind(this, 'removeStream');
@@ -18,10 +22,25 @@ function PeerConnection(config, constraints) {
     this.pc.onicecandidate = this._onIce.bind(this);
     this.pc.ondatachannel = this._onDataChannel.bind(this);
 
+    this.localDescription = {
+        contents: []
+    };
+    this.remoteDescription = {
+        contents: []
+    };
+
+    this.localStream = null;
+    this.remoteStreams = [];
+
     // whether to use SDP hack for faster data transfer
     this.config = {
         debug: false,
-        sdpHack: true
+        sdpHack: true,
+        ice: {},
+        sid: '',
+        isInitiator: true,
+        sdpSessionID: Date.now(),
+        useJingle: false
     };
 
     // apply our config
@@ -37,11 +56,8 @@ function PeerConnection(config, constraints) {
     }
 }
 
-PeerConnection.prototype = Object.create(WildEmitter.prototype, {
-    constructor: {
-        value: PeerConnection
-    }
-});
+util.inherits(PeerConnection, WildEmitter);
+
 
 // Add a stream to the peer connection object
 PeerConnection.prototype.addStream = function (stream) {
@@ -51,8 +67,30 @@ PeerConnection.prototype.addStream = function (stream) {
 
 
 // Init and add ice candidate object with correct constructor
-PeerConnection.prototype.processIce = function (candidate) {
-    this.pc.addIceCandidate(new webrtc.IceCandidate(candidate));
+PeerConnection.prototype.processIce = function (update, cb) {
+    cb = cb || function () {};
+    var self = this;
+
+    var contentNames = _.pluck(this.remoteDescription.contents, 'name');
+    var contents = update.contents || [];
+
+    contents.forEach(function (content) {
+        var transport = content.transport || {};
+        var candidates = transport.candidates || [];
+        var mline = contentNames.indexOf(content.name);
+        var mid = content.name;
+
+        candidates.forEach(function (candidate) {
+            var iceCandidate = SJJ.toCandidateSDP(candidate) + '\r\n';
+            self.pc.addIceCandidate(new webrtc.IceCandidate({
+                candidate: iceCandidate,
+                sdpMLineIndex: mline,
+                sdpMid: mid
+            }));
+        });
+    });
+
+    cb();
 };
 
 // Generate and emit an offer with the given constraints
@@ -65,22 +103,62 @@ PeerConnection.prototype.offer = function (constraints, cb) {
                 OfferToReceiveVideo: true
             }
         };
-    var callback = hasConstraints ? cb : constraints;
+    cb = hasConstraints ? cb : constraints;
+    cb = cb || function () {};
 
     // Actually generate the offer
     this.pc.createOffer(
         function (offer) {
             offer.sdp = self._applySdpHack(offer.sdp);
             self.pc.setLocalDescription(offer);
-            self.emit('offer', offer);
-            if (callback) callback(null, offer);
+            var jingle;
+            var expandedOffer = {
+                type: 'offer',
+                sdp: offer.sdp
+            };
+            if (self.config.useJingle) {
+                jingle = SJJ.toSessionJSON(offer.sdp, self.config.isInitiator ? 'initiator' : 'responder');
+                jingle.sid = self.config.sid;
+                self.localDescription = jingle;
+
+                // Save ICE credentials
+                _.each(jingle.contents, function (content) {
+                    var transport = content.transport || {};
+                    if (transport.ufrag) {
+                        self.config.ice[content.name] = {
+                            ufrag: transport.ufrag,
+                            pwd: transport.pwd
+                        };
+                    }
+                });
+
+                expandedOffer.jingle = jingle;
+            }
+
+            self.emit('offer', expandedOffer);
+            cb(null, expandedOffer);
         },
         function (err) {
             self.emit('error', err);
-            if (callback) callback(err);
+            cb(err);
         },
         mediaConstraints
     );
+};
+
+
+// Process an incoming offer so that ICE may proceed before deciding
+// to answer the request.
+PeerConnection.prototype.handleOffer = function (offer, cb) {
+    cb = cb || function () {};
+    var self = this;
+    offer.type = 'offer';
+    if (offer.jingle) {
+        offer.sdp = SJJ.toSessionSDP(offer.jingle, self.config.sdpSessionID);
+    }
+    self.pc.setRemoteDescription(new webrtc.SessionDescription(offer), function () {
+        cb();
+    }, cb);
 };
 
 // Answer an offer with audio only
@@ -121,8 +199,20 @@ PeerConnection.prototype.answer = function (offer, constraints, cb) {
 };
 
 // Process an answer
-PeerConnection.prototype.handleAnswer = function (answer) {
-    this.pc.setRemoteDescription(new webrtc.SessionDescription(answer));
+PeerConnection.prototype.handleAnswer = function (answer, cb) {
+    cb = cb || function () {};
+    var self = this;
+    if (answer.jingle) {
+        answer.sdp = SJJ.toSessionSDP(answer.jingle, self.config.sdpSessionID);
+        self.remoteDescription = answer.jingle;
+    }
+    self.pc.setRemoteDescription(
+        new webrtc.SessionDescription(answer),
+        function () {
+            cb(null);
+        },
+        cb
+    );
 };
 
 // Close the peer connection
@@ -133,17 +223,28 @@ PeerConnection.prototype.close = function () {
 
 // Internal code sharing for various types of answer methods
 PeerConnection.prototype._answer = function (offer, constraints, cb) {
+    cb = cb || function () {};
     var self = this;
-    this.pc.setRemoteDescription(new webrtc.SessionDescription(offer));
-    this.pc.createAnswer(
+    self.pc.createAnswer(
         function (answer) {
             answer.sdp = self._applySdpHack(answer.sdp);
             self.pc.setLocalDescription(answer);
-            self.emit('answer', answer);
-            if (cb) cb(null, answer);
-        }, function (err) {
+            var expandedAnswer = {
+                type: 'answer',
+                sdp: answer.sdp
+            };
+            if (self.config.useJingle) {
+                var jingle = SJJ.toSessionJSON(answer.sdp);
+                jingle.sid = self.config.sid;
+                self.localDescription = jingle;
+                expandedAnswer.jingle = jingle;
+            }
+            self.emit('answer', expandedAnswer);
+            cb(null, expandedAnswer);
+        },
+        function (err) {
             self.emit('error', err);
-            if (cb) cb(err);
+            cb(err);
         },
         constraints
     );
@@ -151,8 +252,44 @@ PeerConnection.prototype._answer = function (offer, constraints, cb) {
 
 // Internal method for emitting ice candidates on our peer object
 PeerConnection.prototype._onIce = function (event) {
+    var self = this;
     if (event.candidate) {
-        this.emit('ice', event.candidate);
+        var ice = event.candidate;
+
+        var expandedCandidate = {
+            candidate: event.candidate
+        };
+
+        if (self.config.useJingle) {
+            if (!self.config.ice[ice.sdpMid]) {
+                var jingle = SJJ.toSessionJSON(self.pc.localDescription.sdp, self.config.isInitiator ? 'initiator' : 'responder');
+                _.each(jingle.contents, function (content) {
+                    var transport = content.transport || {};
+                    if (transport.ufrag) {
+                        self.config.ice[content.name] = {
+                            ufrag: transport.ufrag,
+                            pwd: transport.pwd
+                        };
+                    }
+                });
+            }
+            expandedCandidate.jingle = {
+                contents: [{
+                    name: ice.sdpMid,
+                    creator: self.config.isInitiator ? 'initiator' : 'responder',
+                    transport: {
+                        transType: 'iceUdp',
+                        ufrag: self.config.ice[ice.sdpMid].ufrag,
+                        pwd: self.config.ice[ice.sdpMid].pwd,
+                        candidates: [
+                            SJJ.toCandidateJSON(ice.candidate)
+                        ]
+                    }
+                }]
+            };
+        }
+
+        this.emit('ice', expandedCandidate);
     } else {
         this.emit('endOfCandidates');
     }
@@ -166,7 +303,7 @@ PeerConnection.prototype._onDataChannel = function (event) {
 
 // Internal handling of adding stream
 PeerConnection.prototype._onAddStream = function (event) {
-    this.remoteStream = event.stream;
+    this.remoteStreams.push(event.stream);
     this.emit('addStream', event);
 };
 
