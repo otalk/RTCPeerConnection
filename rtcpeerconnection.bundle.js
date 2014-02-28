@@ -2886,6 +2886,8 @@ function PeerConnection(config, constraints) {
     var item;
     WildEmitter.call(this);
 
+    config.iceServers = config.iceServers || [];
+
     this.pc = new webrtc.PeerConnection(config, constraints);
 
     // proxy some events directly
