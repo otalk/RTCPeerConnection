@@ -22,9 +22,7 @@
     "underscore": "1.x"
   },
   "devDependencies": {
-    "browserify": "2.x"
-  },
-  "jshintConfig": {
-    "expr": true
+    "browserify": "2.x",
+    "precommit-hook": "0.3.x"
   }
 }
