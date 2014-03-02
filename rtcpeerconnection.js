@@ -53,6 +53,16 @@ PeerConnection.prototype.addStream = function (stream) {
 // Init and add ice candidate object with correct constructor
 PeerConnection.prototype.processIce = function (candidate) {
     this.pc.addIceCandidate(new webrtc.IceCandidate(candidate));
+    /* not yet, breaks Chrome M32
+     * what about Firefox?
+    this.pc.addIceCandidate(new webrtc.IceCandidate(candidate),
+        function () {
+        },
+        function (err) {
+            self.emit('error', err);
+        }
+    );
+    */
 };
 
 // Generate and emit an offer with the given constraints
