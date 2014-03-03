@@ -116,23 +116,30 @@ pc.offer({
 // when you recieve an offer, you can answer
 // with various options
 connection.on('offer', function (offer) {
-    // you can just call answer
-    pc.answer(offer, function (err, answer) {
-        if (!err) connection.send('answer', answer);
-    });
+    pc.handleOffer(offer, function (err) {
+        if (err) {
+            // handle error
+            return;
+        }
 
-    // you can call answer with contstraints
-    pc.answer(offer, MY_CONSTRAINTS, function (err, answer) {
-        if (!err) connection.send('answer', answer);
-    });    
+        // you can just call answer
+        pc.answer(offer, function (err, answer) {
+            if (!err) connection.send('answer', answer);
+        });
 
-    // or you can use one of the shortcuts answers
+        // you can call answer with contstraints
+        pc.answer(offer, MY_CONSTRAINTS, function (err, answer) {
+            if (!err) connection.send('answer', answer);
+        });    
 
-    // for video only
-    pc.answerVideoOnly(offer, function (err, answer) { ... });
+        // or you can use one of the shortcuts answers
 
-    // and audio only
-    pc.answerAudioOnly(offer, function (err, answer) { ... });
+        // for video only
+        pc.answerVideoOnly(offer, function (err, answer) { ... });
+
+        // and audio only
+        pc.answerAudioOnly(offer, function (err, answer) { ... });
+    }); 
 });
 
 // when you get an answer, you just call
