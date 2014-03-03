@@ -53,16 +53,6 @@ PeerConnection.prototype.addStream = function (stream) {
 // Init and add ice candidate object with correct constructor
 PeerConnection.prototype.processIce = function (candidate) {
     this.pc.addIceCandidate(new webrtc.IceCandidate(candidate));
-    /* not yet, breaks Chrome M32
-     * what about Firefox?
-    this.pc.addIceCandidate(new webrtc.IceCandidate(candidate),
-        function () {
-        },
-        function (err) {
-            self.emit('error', err);
-        }
-    );
-    */
 };
 
 // Generate and emit an offer with the given constraints
@@ -81,16 +71,9 @@ PeerConnection.prototype.offer = function (constraints, cb) {
     this.pc.createOffer(
         function (offer) {
             offer.sdp = self._applySdpHack(offer.sdp);
-            self.pc.setLocalDescription(offer,
-                function () {
-                    self.emit('offer', offer);
-                    if (callback) callback(null, offer);
-                },
-                function (err) {
-                    self.emit('error', err);
-                    if (callback) callback(err);
-                }
-            );
+            self.pc.setLocalDescription(offer);
+            self.emit('offer', offer);
+            if (callback) callback(null, offer);
         },
         function (err) {
             self.emit('error', err);
@@ -139,26 +122,7 @@ PeerConnection.prototype.answer = function (offer, constraints, cb) {
 
 // Process an answer
 PeerConnection.prototype.handleAnswer = function (answer) {
-    this.pc.setRemoteDescription(new webrtc.SessionDescription(answer),
-        function () {
-            this.emit('remotedescription');
-        },
-        function (err) {
-            this.emit('error', err);
-        }
-    );
-};
-
-// Process an offer
-PeerConnection.prototype.handleOffer = function (offer) {
-    this.pc.setRemoteDescription(new webrtc.SessionDescription(offer), 
-        function () {
-            this.emit('remotedescription');
-        },
-        function (err) {
-            this.emit('error', err);
-        }
-    );
+    this.pc.setRemoteDescription(new webrtc.SessionDescription(answer));
 };
 
 // Close the peer connection
@@ -170,19 +134,13 @@ PeerConnection.prototype.close = function () {
 // Internal code sharing for various types of answer methods
 PeerConnection.prototype._answer = function (offer, constraints, cb) {
     var self = this;
+    this.pc.setRemoteDescription(new webrtc.SessionDescription(offer));
     this.pc.createAnswer(
         function (answer) {
             answer.sdp = self._applySdpHack(answer.sdp);
-            self.pc.setLocalDescription(answer,
-                function () {
-                    self.emit('answer', answer);
-                    if (cb) cb(null, answer);
-                },
-                function (err) {
-                    self.emit('error', err);
-                    if (cb) cb(err);
-                }
-            );
+            self.pc.setLocalDescription(answer);
+            self.emit('answer', answer);
+            if (cb) cb(null, answer);
         }, function (err) {
             self.emit('error', err);
             if (cb) cb(err);
