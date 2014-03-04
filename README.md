@@ -116,6 +116,8 @@ pc.offer({
 // when you recieve an offer, you can answer
 // with various options
 connection.on('offer', function (offer) {
+    // let the peerconnection handle the offer
+    // by calling handleOffer
     pc.handleOffer(offer, function (err) {
         if (err) {
             // handle error
@@ -123,22 +125,22 @@ connection.on('offer', function (offer) {
         }
 
         // you can just call answer
-        pc.answer(offer, function (err, answer) {
+        pc.answer(function (err, answer) {
             if (!err) connection.send('answer', answer);
         });
 
         // you can call answer with contstraints
-        pc.answer(offer, MY_CONSTRAINTS, function (err, answer) {
+        pc.answer(MY_CONSTRAINTS, function (err, answer) {
             if (!err) connection.send('answer', answer);
         });    
 
         // or you can use one of the shortcuts answers
 
         // for video only
-        pc.answerVideoOnly(offer, function (err, answer) { ... });
+        pc.answerVideoOnly(function (err, answer) { ... });
 
         // and audio only
-        pc.answerAudioOnly(offer, function (err, answer) { ... });
+        pc.answerAudioOnly(function (err, answer) { ... });
     }); 
 });
 
