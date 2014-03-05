@@ -2700,7 +2700,7 @@ exports.toCandidateSDP = function (candidate) {
 var prefix;
 var isChrome = false;
 var isFirefox = false;
-var ua = navigator.userAgent.toLowerCase();
+var ua = window.navigator.userAgent.toLowerCase();
 
 // basic sniffing
 if (ua.indexOf('firefox') !== -1) {
@@ -2715,7 +2715,7 @@ var PC = window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
 var IceCandidate = window.mozRTCIceCandidate || window.RTCIceCandidate;
 var SessionDescription = window.mozRTCSessionDescription || window.RTCSessionDescription;
 var MediaStream = window.webkitMediaStream || window.MediaStream;
-var screenSharing = navigator.userAgent.match('Chrome') && parseInt(navigator.userAgent.match(/Chrome\/(.*) /)[1], 10) >= 26;
+var screenSharing = window.navigator.userAgent.match('Chrome') && parseInt(window.navigator.userAgent.match(/Chrome\/(.*) /)[1], 10) >= 26;
 var AudioContext = window.webkitAudioContext || window.AudioContext;
 
 
@@ -2886,6 +2886,7 @@ function PeerConnection(config, constraints) {
     var item;
     WildEmitter.call(this);
 
+    config = config || {};
     config.iceServers = config.iceServers || [];
 
     this.pc = new webrtc.PeerConnection(config, constraints);
@@ -2911,10 +2912,8 @@ function PeerConnection(config, constraints) {
     this.localStream = null;
     this.remoteStreams = [];
 
-    // whether to use SDP hack for faster data transfer
     this.config = {
         debug: false,
-        sdpHack: true,
         ice: {},
         sid: '',
         isInitiator: true,
@@ -2965,7 +2964,17 @@ PeerConnection.prototype.processIce = function (update, cb) {
                 candidate: iceCandidate,
                 sdpMLineIndex: mline,
                 sdpMid: mid
-            }));
+            })
+            /* not yet, breaks Chrome M32 */
+            /*
+            , function () {
+                // well, this success callback is pretty meaningless
+            },
+            function (err) {
+                self.emit('error', err);
+            }
+            */
+            );
         });
     });
 
@@ -2988,34 +2997,40 @@ PeerConnection.prototype.offer = function (constraints, cb) {
     // Actually generate the offer
     this.pc.createOffer(
         function (offer) {
-            offer.sdp = self._applySdpHack(offer.sdp);
-            self.pc.setLocalDescription(offer);
-            var jingle;
-            var expandedOffer = {
-                type: 'offer',
-                sdp: offer.sdp
-            };
-            if (self.config.useJingle) {
-                jingle = SJJ.toSessionJSON(offer.sdp, self.config.isInitiator ? 'initiator' : 'responder');
-                jingle.sid = self.config.sid;
-                self.localDescription = jingle;
+            self.pc.setLocalDescription(offer,
+                function () {
+                    var jingle;
+                    var expandedOffer = {
+                        type: 'offer',
+                        sdp: offer.sdp
+                    };
+                    if (self.config.useJingle) {
+                        jingle = SJJ.toSessionJSON(offer.sdp, self.config.isInitiator ? 'initiator' : 'responder');
+                        jingle.sid = self.config.sid;
+                        self.localDescription = jingle;
 
-                // Save ICE credentials
-                _.each(jingle.contents, function (content) {
-                    var transport = content.transport || {};
-                    if (transport.ufrag) {
-                        self.config.ice[content.name] = {
-                            ufrag: transport.ufrag,
-                            pwd: transport.pwd
-                        };
+                        // Save ICE credentials
+                        _.each(jingle.contents, function (content) {
+                            var transport = content.transport || {};
+                            if (transport.ufrag) {
+                                self.config.ice[content.name] = {
+                                    ufrag: transport.ufrag,
+                                    pwd: transport.pwd
+                                };
+                            }
+                        });
+
+                        expandedOffer.jingle = jingle;
                     }
-                });
 
-                expandedOffer.jingle = jingle;
-            }
-
-            self.emit('offer', expandedOffer);
-            cb(null, expandedOffer);
+                    self.emit('offer', expandedOffer);
+                    cb(null, expandedOffer);
+                },
+                function (err) {
+                    self.emit('error', err);
+                    cb(err);
+                }
+            );
         },
         function (err) {
             self.emit('error', err);
@@ -3041,31 +3056,31 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
 };
 
 // Answer an offer with audio only
-PeerConnection.prototype.answerAudioOnly = function (offer, cb) {
+PeerConnection.prototype.answerAudioOnly = function (cb) {
     var mediaConstraints = {
             mandatory: {
                 OfferToReceiveAudio: true,
                 OfferToReceiveVideo: false
             }
         };
-    this._answer(offer, mediaConstraints, cb);
+    this._answer(mediaConstraints, cb);
 };
 
 // Answer an offer without offering to recieve
-PeerConnection.prototype.answerBroadcastOnly = function (offer, cb) {
+PeerConnection.prototype.answerBroadcastOnly = function (cb) {
     var mediaConstraints = {
             mandatory: {
                 OfferToReceiveAudio: false,
                 OfferToReceiveVideo: false
             }
         };
-    this._answer(offer, mediaConstraints, cb);
+    this._answer(mediaConstraints, cb);
 };
 
 // Answer an offer with given constraints default is audio/video
-PeerConnection.prototype.answer = function (offer, constraints, cb) {
+PeerConnection.prototype.answer = function (constraints, cb) {
     var self = this;
-    var hasConstraints = arguments.length === 3;
+    var hasConstraints = arguments.length === 2;
     var callback = hasConstraints ? cb : constraints;
     var mediaConstraints = hasConstraints ? constraints : {
             mandatory: {
@@ -3074,7 +3089,7 @@ PeerConnection.prototype.answer = function (offer, constraints, cb) {
             }
         };
 
-    this._answer(offer, mediaConstraints, callback);
+    this._answer(mediaConstraints, callback);
 };
 
 // Process an answer
@@ -3101,25 +3116,35 @@ PeerConnection.prototype.close = function () {
 };
 
 // Internal code sharing for various types of answer methods
-PeerConnection.prototype._answer = function (offer, constraints, cb) {
+PeerConnection.prototype._answer = function (constraints, cb) {
     cb = cb || function () {};
     var self = this;
+    if (!this.pc.remoteDescription) {
+        // the old API is used, call handleOffer
+        throw new Error('remoteDescription not set');
+    }
     self.pc.createAnswer(
         function (answer) {
-            answer.sdp = self._applySdpHack(answer.sdp);
-            self.pc.setLocalDescription(answer);
-            var expandedAnswer = {
-                type: 'answer',
-                sdp: answer.sdp
-            };
-            if (self.config.useJingle) {
-                var jingle = SJJ.toSessionJSON(answer.sdp);
-                jingle.sid = self.config.sid;
-                self.localDescription = jingle;
-                expandedAnswer.jingle = jingle;
-            }
-            self.emit('answer', expandedAnswer);
-            cb(null, expandedAnswer);
+            self.pc.setLocalDescription(answer,
+                function () {
+                    var expandedAnswer = {
+                        type: 'answer',
+                        sdp: answer.sdp
+                    };
+                    if (self.config.useJingle) {
+                        var jingle = SJJ.toSessionJSON(answer.sdp);
+                        jingle.sid = self.config.sid;
+                        self.localDescription = jingle;
+                        expandedAnswer.jingle = jingle;
+                    }
+                    self.emit('answer', expandedAnswer);
+                    cb(null, expandedAnswer);
+                },
+                function (err) {
+                    self.emit('error', err);
+                    cb(err);
+                }
+            );
         },
         function (err) {
             self.emit('error', err);
@@ -3184,18 +3209,6 @@ PeerConnection.prototype._onDataChannel = function (event) {
 PeerConnection.prototype._onAddStream = function (event) {
     this.remoteStreams.push(event.stream);
     this.emit('addStream', event);
-};
-
-// SDP hack for increasing AS (application specific) data transfer speed allowed in chrome
-PeerConnection.prototype._applySdpHack = function (sdp) {
-    if (!this.config.sdpHack) return sdp;
-    var parts = sdp.split('b=AS:30');
-    if (parts.length === 2) {
-        // increase max data transfer bandwidth to 100 Mbps
-        return parts[0] + 'b=AS:102400' + parts[1];
-    } else {
-        return sdp;
-    }
 };
 
 // Create a data channel spec reference:
