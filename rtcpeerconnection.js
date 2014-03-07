@@ -72,10 +72,9 @@ PeerConnection.prototype.processIce = function (update, cb) {
     cb = cb || function () {};
     var self = this;
 
-    if (self.config.useJingle) {
+    if (update.contents) {
         var contentNames = _.pluck(this.remoteDescription.contents, 'name');
-        var contents = update.contents || [];
-        console.log(update);
+        var contents = update.contents;
 
         contents.forEach(function (content) {
             var transport = content.transport || {};
