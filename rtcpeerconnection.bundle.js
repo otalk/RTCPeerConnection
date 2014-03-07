@@ -3219,35 +3219,7 @@ PeerConnection.prototype._onAddStream = function (event) {
 // Create a data channel spec reference:
 // http://dev.w3.org/2011/webrtc/editor/webrtc.html#idl-def-RTCDataChannelInit
 PeerConnection.prototype.createDataChannel = function (name, opts) {
-    opts || (opts = {});
-    var reliable = !!opts.reliable;
-    var protocol = opts.protocol || 'text/plain';
-    var negotiated = !!(opts.negotiated || opts.preset);
-    var settings;
-    var channel;
-    // firefox is a bit more finnicky
-    if (webrtc.prefix === 'moz') {
-        if (reliable) {
-            settings = {
-                protocol: protocol,
-                preset: negotiated,
-                stream: name
-            };
-        } else {
-            settings = {};
-        }
-        channel = this.pc.createDataChannel(name, settings);
-        channel.binaryType = 'blob';
-    } else {
-        if (reliable) {
-            settings = {
-                reliable: true
-            };
-        } else {
-            settings = {reliable: false};
-        }
-        channel = this.pc.createDataChannel(name, settings);
-    }
+    var channel = this.pc.createDataChannel(name, opts);
     return channel;
 };
 
