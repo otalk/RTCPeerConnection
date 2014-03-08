@@ -3,8 +3,8 @@ var PeerConnection = require('../rtcpeerconnection');
 
 test('basic connection establishment', function (t) {
     var pc1, pc2;
-    pc1 = new PeerConnection({useJingle: true});
-    pc2 = new PeerConnection({useJingle: true});
+    pc1 = new PeerConnection();
+    pc2 = new PeerConnection();
 
     pc1.on('ice', function (candidate) {
         pc2.processIce(candidate);
