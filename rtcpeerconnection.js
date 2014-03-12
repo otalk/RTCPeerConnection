@@ -3,16 +3,21 @@ var util = require('util');
 var webrtc = require('webrtcsupport');
 var SJJ = require('sdp-jingle-json');
 var WildEmitter = require('wildemitter');
-
+var peerconn = require('traceablepeerconnection');
 
 function PeerConnection(config, constraints) {
+    var self = this;
     var item;
     WildEmitter.call(this);
 
     config = config || {};
     config.iceServers = config.iceServers || [];
 
-    this.pc = new webrtc.PeerConnection(config, constraints);
+    this.pc = new peerconn(config, constraints);
+    // proxy events 
+    this.pc.on('*', function () {
+        self.emit.apply(self, arguments);
+    });
 
     // proxy some events directly
     this.pc.onremovestream = this.emit.bind(this, 'removeStream');

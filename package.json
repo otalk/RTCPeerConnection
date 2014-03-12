@@ -18,6 +18,7 @@
   "dependencies": {
     "wildemitter": "1.x",
     "webrtcsupport": "0.7.x",
+    "traceablepeerconnection": "0.1.x",
     "sdp-jingle-json": "1.x",
     "underscore": "1.x"
   },

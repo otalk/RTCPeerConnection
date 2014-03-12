@@ -1351,6 +1351,205 @@ exports.toCandidateSDP = function (candidate) {
 };
 
 },{}],7:[function(require,module,exports){
+// based on https://github.com/ESTOS/strophe.jingle/
+// adds wildemitter support
+var util = require('util');
+var webrtc = require('webrtcsupport');
+var WildEmitter = require('wildemitter');
+
+function dumpSDP(description) {
+    return 'type: ' + description.type + '\r\n' + description.sdp;
+}
+
+function TraceablePeerConnection(config, constraints) {
+    var self = this;
+    WildEmitter.call(this);
+
+    this.peerconnection = new webrtc.PeerConnection(config, constraints);
+
+    this.trace = function (what, info) {
+        self.emit('PeerConnectionTrace', {
+            time: new Date(),
+            type: what,
+            value: info || ""
+        });
+    };
+
+    this.onicecandidate = null;
+    this.peerconnection.onicecandidate = function (event) {
+        self.trace('onicecandidate', JSON.stringify(event.candidate, null, ' '));
+        if (self.onicecandidate !== null) {
+            self.onicecandidate(event);
+        }
+    };
+    this.onaddstream = null;
+    this.peerconnection.onaddstream = function (event) {
+        self.trace('onaddstream', event.stream.id);
+        if (self.onaddstream !== null) {
+            self.onaddstream(event);
+        }
+    };
+    this.onremovestream = null;
+    this.peerconnection.onremovestream = function (event) {
+        self.trace('onremovestream', event.stream.id);
+        if (self.onremovestream !== null) {
+            self.onremovestream(event);
+        }
+    };
+    this.onsignalingstatechange = null;
+    this.peerconnection.onsignalingstatechange = function (event) {
+        self.trace('onsignalingstatechange', self.signalingState);
+        if (self.onsignalingstatechange !== null) {
+            self.onsignalingstatechange(event);
+        }
+    };
+    this.oniceconnectionstatechange = null;
+    this.peerconnection.oniceconnectionstatechange = function (event) {
+        self.trace('oniceconnectionstatechange', self.iceConnectionState);
+        if (self.oniceconnectionstatechange !== null) {
+            self.oniceconnectionstatechange(event);
+        }
+    };
+    this.onnegotiationneeded = null;
+    this.peerconnection.onnegotiationneeded = function (event) {
+        self.trace('onnegotiationneeded');
+        if (self.onnegotiationneeded !== null) {
+            self.onnegotiationneeded(event);
+        }
+    };
+    self.ondatachannel = null;
+    this.peerconnection.ondatachannel = function (event) {
+        self.trace('ondatachannel', event);
+        if (self.ondatachannel !== null) {
+            self.ondatachannel(event);
+        }
+    };
+}
+
+util.inherits(TraceablePeerConnection, WildEmitter);
+
+if (TraceablePeerConnection.prototype.__defineGetter__ !== undefined) {
+    TraceablePeerConnection.prototype.__defineGetter__('signalingState', function () { return this.peerconnection.signalingState; });
+    TraceablePeerConnection.prototype.__defineGetter__('iceConnectionState', function () { return this.peerconnection.iceConnectionState; });
+    TraceablePeerConnection.prototype.__defineGetter__('localDescription', function () { return this.peerconnection.localDescription; });
+    TraceablePeerConnection.prototype.__defineGetter__('remoteDescription', function () { return this.peerconnection.remoteDescription; });
+}
+
+TraceablePeerConnection.prototype.addStream = function (stream) {
+    this.trace('addStream', stream.id);
+    this.peerconnection.addStream(stream);
+};
+
+TraceablePeerConnection.prototype.removeStream = function (stream) {
+    this.trace('removeStream', stream.id);
+    this.peerconnection.removeStream(stream);
+};
+
+TraceablePeerConnection.prototype.createDataChannel = function (label, opts) {
+    this.trace('createDataChannel', label, opts);
+    this.peerconnection.createDataChannel(label, opts);
+};
+
+TraceablePeerConnection.prototype.setLocalDescription = function (description, successCallback, failureCallback) {
+    var self = this;
+    this.trace('setLocalDescription', dumpSDP(description));
+    this.peerconnection.setLocalDescription(description,
+        function () {
+            self.trace('setLocalDescriptionOnSuccess');
+            successCallback();
+        },
+        function (err) {
+            self.trace('setLocalDescriptionOnFailure', err);
+            failureCallback(err);
+        }
+    );
+};
+
+TraceablePeerConnection.prototype.setRemoteDescription = function (description, successCallback, failureCallback) {
+    var self = this;
+    this.trace('setRemoteDescription', dumpSDP(description));
+    this.peerconnection.setRemoteDescription(description,
+        function () {
+            self.trace('setRemoteDescriptionOnSuccess');
+            successCallback();
+        },
+        function (err) {
+            self.trace('setRemoteDescriptionOnFailure', err);
+            failureCallback(err);
+        }
+    );
+};
+
+TraceablePeerConnection.prototype.close = function () {
+    this.trace('stop');
+    if (this.statsinterval !== null) {
+        window.clearInterval(this.statsinterval);
+        this.statsinterval = null;
+    }
+    this.peerconnection.close();
+};
+
+TraceablePeerConnection.prototype.createOffer = function (successCallback, failureCallback, constraints) {
+    var self = this;
+    this.trace('createOffer', JSON.stringify(constraints, null, ' '));
+    this.peerconnection.createOffer(
+        function (offer) {
+            self.trace('createOfferOnSuccess', dumpSDP(offer));
+            successCallback(offer);
+        },
+        function (err) {
+            self.trace('createOfferOnFailure', err);
+            failureCallback(err);
+        },
+        constraints
+    );
+};
+
+TraceablePeerConnection.prototype.createAnswer = function (successCallback, failureCallback, constraints) {
+    var self = this;
+    this.trace('createAnswer', JSON.stringify(constraints, null, ' '));
+    this.peerconnection.createAnswer(
+        function (answer) {
+            self.trace('createAnswerOnSuccess', dumpSDP(answer));
+            successCallback(answer);
+        },
+        function (err) {
+            self.trace('createAnswerOnFailure', err);
+            failureCallback(err);
+        },
+        constraints
+    );
+};
+
+TraceablePeerConnection.prototype.addIceCandidate = function (candidate, successCallback, failureCallback) {
+    var self = this;
+    this.trace('addIceCandidate', JSON.stringify(candidate, null, ' '));
+    this.peerconnection.addIceCandidate(candidate);
+    /* maybe later
+    this.peerconnection.addIceCandidate(candidate, 
+        function () {                                
+            self.trace('addIceCandidateOnSuccess');
+            successCallback();
+        },
+        function (err) {
+            self.trace('addIceCandidateOnFailure', err);
+            failureCallback(err);
+        }
+    );
+    */
+};
+
+TraceablePeerConnection.prototype.getStats = function (callback, errback) {
+    if (navigator.mozGetUserMedia) {
+        // ignore for now...
+    } else {
+        this.peerconnection.getStats(callback);
+    }
+};
+
+module.exports = TraceablePeerConnection;
+
+},{"util":2,"webrtcsupport":9,"wildemitter":10}],8:[function(require,module,exports){
 //     Underscore.js 1.6.0
 //     http://underscorejs.org
 //     (c) 2009-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -2695,7 +2894,7 @@ exports.toCandidateSDP = function (candidate) {
   }
 }).call(this);
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 // created by @HenrikJoreteg
 var prefix;
 var isChrome = false;
@@ -2715,7 +2914,7 @@ var PC = window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
 var IceCandidate = window.mozRTCIceCandidate || window.RTCIceCandidate;
 var SessionDescription = window.mozRTCSessionDescription || window.RTCSessionDescription;
 var MediaStream = window.webkitMediaStream || window.MediaStream;
-var screenSharing = window.navigator.userAgent.match('Chrome') && parseInt(window.navigator.userAgent.match(/Chrome\/(.*) /)[1], 10) >= 26;
+var screenSharing = window.location.protocol === 'https:' && window.navigator.userAgent.match('Chrome') && parseInt(window.navigator.userAgent.match(/Chrome\/(.*) /)[1], 10) >= 26;
 var AudioContext = window.webkitAudioContext || window.AudioContext;
 
 
@@ -2733,7 +2932,7 @@ module.exports = {
     IceCandidate: IceCandidate
 };
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 /*
 WildEmitter.js is a slim little event emitter by @henrikjoreteg largely based 
 on @visionmedia's Emitter from UI Kit.
@@ -2874,22 +3073,27 @@ WildEmitter.prototype.getWildcardCallbacks = function (eventName) {
     return result;
 };
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 var _ = require('underscore');
 var util = require('util');
 var webrtc = require('webrtcsupport');
 var SJJ = require('sdp-jingle-json');
 var WildEmitter = require('wildemitter');
-
+var peerconn = require('traceablepeerconnection');
 
 function PeerConnection(config, constraints) {
+    var self = this;
     var item;
     WildEmitter.call(this);
 
     config = config || {};
     config.iceServers = config.iceServers || [];
 
-    this.pc = new webrtc.PeerConnection(config, constraints);
+    this.pc = new peerconn(config, constraints);
+    // proxy events 
+    this.pc.on('*', function () {
+        self.emit.apply(self, arguments);
+    });
 
     // proxy some events directly
     this.pc.onremovestream = this.emit.bind(this, 'removeStream');
@@ -2951,7 +3155,7 @@ PeerConnection.prototype.processIce = function (update, cb) {
 
     if (update.contents) {
         var contentNames = _.pluck(this.remoteDescription.contents, 'name');
-        var contents = update.contents; 
+        var contents = update.contents;
 
         contents.forEach(function (content) {
             var transport = content.transport || {};
@@ -3224,7 +3428,7 @@ PeerConnection.prototype.createDataChannel = function (name, opts) {
 
 module.exports = PeerConnection;
 
-},{"sdp-jingle-json":3,"underscore":7,"util":2,"webrtcsupport":8,"wildemitter":9}]},{},[10])
-(10)
+},{"sdp-jingle-json":3,"traceablepeerconnection":7,"underscore":8,"util":2,"webrtcsupport":9,"wildemitter":10}]},{},[11])
+(11)
 });
 ;
