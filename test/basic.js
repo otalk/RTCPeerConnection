@@ -17,6 +17,7 @@ test('basic connection establishment', function (t) {
     pc1.on('iceConnectionStateChange', function () {
         //console.log('pc1 iceConnectionStateChange', pc1.pc.iceConnectionState);
         if (pc1.pc.iceConnectionState == 'connected') {
+            t.pass('P2P connection established');
             t.end();
         }
         // FIXME: also look for https://code.google.com/p/webrtc/issues/detail?id=1414
@@ -25,25 +26,36 @@ test('basic connection establishment', function (t) {
         //console.log('pc2 iceConnectionStateChange', pc2.pc.iceConnectionState);
     });
 
-    pc1.on('offer', function (offer) {
+    pc1.offer(function (err, offer) {
+        if (err) {
+            t.fail('failed to create offer');
+            return;
+        }
+        t.pass('created offer');
         pc2.handleOffer(offer, function (err) {
             if (err) {
                 // handle error
                 t.fail('error handling offer');
                 return;
             }
+            t.pass('handled offer');
 
             pc2.answer(function (err, answer) {
                 if (err) {
-                    // handle error
                     t.fail('error handling answer');
                     return;
                 }
-                pc1.handleAnswer(answer);
+                t.pass('created answer');
+                pc1.handleAnswer(answer, function (err) {
+                    if (err) {
+                        t.fail('failed to handle answer');
+                        return;
+                    }
+                    t.pass('handled answer');
+                });
             });
         });
     });
-    pc1.offer();
 });
 
 test('basic connection establishment -- using Jingle', function (t) {
@@ -61,6 +73,7 @@ test('basic connection establishment -- using Jingle', function (t) {
     pc1.on('iceConnectionStateChange', function () {
         //console.log('pc1 iceConnectionStateChange', pc1.pc.iceConnectionState);
         if (pc1.pc.iceConnectionState == 'connected') {
+            t.pass('P2P connection established');
             t.end();
         }
         // FIXME: also look for https://code.google.com/p/webrtc/issues/detail?id=1414
@@ -69,31 +82,42 @@ test('basic connection establishment -- using Jingle', function (t) {
         //console.log('pc2 iceConnectionStateChange', pc2.pc.iceConnectionState);
     });
 
-    pc1.on('offer', function (offer) {
+    pc1.offer(function (err, offer) {
+        if (err) {
+            t.fail('failed to create offer');
+            return;
+        }
+        t.pass('created offer');
         pc2.handleOffer(offer, function (err) {
             if (err) {
                 // handle error
                 t.fail('error handling offer');
                 return;
             }
+            t.pass('handled offer');
 
             pc2.answer(function (err, answer) {
                 if (err) {
-                    // handle error
                     t.fail('error handling answer');
                     return;
                 }
-                pc1.handleAnswer(answer);
+                t.pass('created answer');
+                pc1.handleAnswer(answer, function (err) {
+                    if (err) {
+                        t.fail('failed to handle answer');
+                        return;
+                    }
+                    t.pass('handled answer');
+                });
             });
         });
     });
-    pc1.offer();
 });
 
 test('async accept', function (t) {
     var pc1, pc2;
-    pc1 = new PeerConnection();
-    pc2 = new PeerConnection();
+    pc1 = new PeerConnection({useJingle: true});
+    pc2 = new PeerConnection({useJingle: true});
 
     pc1.on('ice', function (candidate) {
         pc2.processIce(candidate);
@@ -105,6 +129,7 @@ test('async accept', function (t) {
     pc1.on('iceConnectionStateChange', function () {
         //console.log('pc1 iceConnectionStateChange', pc1.pc.iceConnectionState);
         if (pc1.pc.iceConnectionState == 'connected') {
+            t.pass('P2P connection established');
             t.end();
         }
         // FIXME: also look for https://code.google.com/p/webrtc/issues/detail?id=1414
@@ -113,13 +138,19 @@ test('async accept', function (t) {
         //console.log('pc2 iceConnectionStateChange', pc2.pc.iceConnectionState);
     });
 
-    pc1.on('offer', function (offer) {
+    pc1.offer(function (err, offer) {
+        if (err) {
+            t.fail('failed to create offer');
+            return;
+        }
+        t.pass('created offer');
         pc2.handleOffer(offer, function (err) {
             if (err) {
                 // handle error
                 t.fail('error handling offer');
                 return;
             }
+            t.pass('handled offer');
 
             window.setTimeout(function () {
                 pc2.answer(function (err, answer) {
@@ -128,10 +159,16 @@ test('async accept', function (t) {
                         t.fail('error handling answer');
                         return;
                     }
-                    pc1.handleAnswer(answer);
+                    t.pass('created answer');
+                    pc1.handleAnswer(answer, function (err) {
+                        if (err) {
+                            t.fail('failed to handle answer');
+                            return;
+                        }
+                        t.pass('handled answer');
+                    });
                 });
             }, 5000);
         });
     });
-    pc1.offer();
 });
