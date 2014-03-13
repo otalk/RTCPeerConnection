@@ -1,6 +1,6 @@
 {
   "name": "rtcpeerconnection",
-  "version": "1.9.9",
+  "version": "2.0.0",
   "description": "A tiny browser module that normalizes and simplifies the API for WebRTC peer connections.",
   "main": "rtcpeerconnection.js",
   "repository": {
@@ -30,11 +30,11 @@
   "testling": {
     "files": "test/*.js",
     "browsers": [
-        "ie/10..latest",
-        "chrome/33..latest",
-        "firefox/24..latest",
-        "safari/latest",
-        "opera/18..latest"
+      "ie/10..latest",
+      "chrome/33..latest",
+      "firefox/24..latest",
+      "safari/latest",
+      "opera/18..latest"
     ]
   }
 }
