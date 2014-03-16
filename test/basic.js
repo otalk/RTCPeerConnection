@@ -15,15 +15,15 @@ test('basic connection establishment', function (t) {
     });
 
     pc1.on('iceConnectionStateChange', function () {
-        //console.log('pc1 iceConnectionStateChange', pc1.pc.iceConnectionState);
-        if (pc1.pc.iceConnectionState == 'connected') {
+        //console.log('pc1 iceConnectionStateChange', pc1.iceConnectionState);
+        if (pc1.iceConnectionState == 'connected') {
             t.pass('P2P connection established');
             t.end();
         }
         // FIXME: also look for https://code.google.com/p/webrtc/issues/detail?id=1414
     });
     pc2.on('iceConnectionStateChange', function () {
-        //console.log('pc2 iceConnectionStateChange', pc2.pc.iceConnectionState);
+        //console.log('pc2 iceConnectionStateChange', pc2.iceConnectionState);
     });
 
     pc1.offer(function (err, offer) {
@@ -71,15 +71,15 @@ test('basic connection establishment -- using Jingle', function (t) {
     });
 
     pc1.on('iceConnectionStateChange', function () {
-        //console.log('pc1 iceConnectionStateChange', pc1.pc.iceConnectionState);
-        if (pc1.pc.iceConnectionState == 'connected') {
+        //console.log('pc1 iceConnectionStateChange', pc1.iceConnectionState);
+        if (pc1.iceConnectionState == 'connected') {
             t.pass('P2P connection established');
             t.end();
         }
         // FIXME: also look for https://code.google.com/p/webrtc/issues/detail?id=1414
     });
     pc2.on('iceConnectionStateChange', function () {
-        //console.log('pc2 iceConnectionStateChange', pc2.pc.iceConnectionState);
+        //console.log('pc2 iceConnectionStateChange', pc2.iceConnectionState);
     });
 
     pc1.offer(function (err, offer) {
@@ -127,15 +127,15 @@ test('async accept', function (t) {
     });
 
     pc1.on('iceConnectionStateChange', function () {
-        //console.log('pc1 iceConnectionStateChange', pc1.pc.iceConnectionState);
-        if (pc1.pc.iceConnectionState == 'connected') {
+        //console.log('pc1 iceConnectionStateChange', pc1.iceConnectionState);
+        if (pc1.iceConnectionState == 'connected') {
             t.pass('P2P connection established');
             t.end();
         }
         // FIXME: also look for https://code.google.com/p/webrtc/issues/detail?id=1414
     });
     pc2.on('iceConnectionStateChange', function () {
-        //console.log('pc2 iceConnectionStateChange', pc2.pc.iceConnectionState);
+        //console.log('pc2 iceConnectionStateChange', pc2.iceConnectionState);
     });
 
     pc1.offer(function (err, offer) {

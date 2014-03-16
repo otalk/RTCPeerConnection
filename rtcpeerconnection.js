@@ -64,6 +64,12 @@ function PeerConnection(config, constraints) {
 
 util.inherits(PeerConnection, WildEmitter);
 
+PeerConnection.prototype.__defineGetter__('signalingState', function () {
+    return this.pc.signalingState;
+});
+PeerConnection.prototype.__defineGetter__('iceConnectionState', function () {
+    return this.pc.iceConnectionState;
+});
 
 // Add a stream to the peer connection object
 PeerConnection.prototype.addStream = function (stream) {
