@@ -9,8 +9,6 @@ It gives us a cleaner (cross-browser) way to handle offer/answer and is based on
 
 If you're not using browserify or you want AMD support use `rtcpeerconnection.bundle.js`.
 
-It also applies the SDP hack for lifting data transfer speed limits imposed by chrome by default. It modifies the "AS" or application specific maximum bandwidth setting from 30 kilobits / sec to 100 Mbps. This is really handy for file transfers, etc. It can be disabled by passing `{sdpHack: false}` as part of your config as passed in the first argument. 
-
 ## Installing
 
 ```
