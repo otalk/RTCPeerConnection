@@ -29,7 +29,6 @@ var PeerConnection = require('rtcpeerconnection');
 // init it like a normal peer connection object
 // passing in ice servers/constraints the initial server config
 // also takes a couple other options:
-// sdpHack: false (to not use the SDP hack as described above)
 // debug: true (to log out all emitted events)
 var pc = new PeerConnection({config servers as usual}, {constraints as to regular PC});
 ```
