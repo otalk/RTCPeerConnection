@@ -31,7 +31,7 @@
     "files": "test/*.js",
     "browsers": [
       "ie/10..latest",
-      "chrome/33..latest",
+      "chrome/32..latest",
       "firefox/24..latest",
       "safari/latest",
       "opera/18..latest"
