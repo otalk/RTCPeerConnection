@@ -1486,7 +1486,9 @@ TraceablePeerConnection.prototype.close = function () {
         window.clearInterval(this.statsinterval);
         this.statsinterval = null;
     }
-    this.peerconnection.close();
+    if (this.peerconnection.signalingState != 'closed') {
+        this.peerconnection.close();
+    }
 };
 
 TraceablePeerConnection.prototype.createOffer = function (successCallback, failureCallback, constraints) {
@@ -1541,7 +1543,7 @@ TraceablePeerConnection.prototype.addIceCandidate = function (candidate, success
 
 TraceablePeerConnection.prototype.getStats = function (callback, errback) {
     if (navigator.mozGetUserMedia) {
-        // ignore for now...
+        this.peerconnection.getStats(null, callback, errback);
     } else {
         this.peerconnection.getStats(callback);
     }
@@ -3432,6 +3434,37 @@ PeerConnection.prototype._onAddStream = function (event) {
 PeerConnection.prototype.createDataChannel = function (name, opts) {
     var channel = this.pc.createDataChannel(name, opts);
     return channel;
+};
+
+// a wrapper around getStats which hides the differences (where possible)
+PeerConnection.prototype.getStats = function (cb) {
+    if (webrtc.prefix === 'moz') {
+        this.pc.getStats(
+            function (res) {
+                var items = [];
+                res.forEach(function (result) {
+                    items.push(result);
+                });
+                cb(null, items);
+            },
+            cb
+        );
+    } else {
+        this.pc.getStats(function (res) {
+            var items = [];
+            res.result().forEach(function (result) {
+                var item = {};
+                result.names().forEach(function (name) {
+                    item[name] = result.stat(name);
+                });
+                item.id = result.id;
+                item.type = result.type;
+                item.timestamp = result.timestamp;
+                items.push(item);
+            });
+            cb(null, items);
+        });
+    }
 };
 
 module.exports = PeerConnection;
