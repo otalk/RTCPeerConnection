@@ -1428,12 +1428,29 @@ function TraceablePeerConnection(config, constraints) {
 
 util.inherits(TraceablePeerConnection, WildEmitter);
 
-if (TraceablePeerConnection.prototype.__defineGetter__ !== undefined) {
-    TraceablePeerConnection.prototype.__defineGetter__('signalingState', function () { return this.peerconnection.signalingState; });
-    TraceablePeerConnection.prototype.__defineGetter__('iceConnectionState', function () { return this.peerconnection.iceConnectionState; });
-    TraceablePeerConnection.prototype.__defineGetter__('localDescription', function () { return this.peerconnection.localDescription; });
-    TraceablePeerConnection.prototype.__defineGetter__('remoteDescription', function () { return this.peerconnection.remoteDescription; });
-}
+Object.defineProperty(TraceablePeerConnection.prototype, 'signalingState', {
+    get: function () {
+        return this.peerconnection.signalingState;
+    }
+});
+
+Object.defineProperty(TraceablePeerConnection.prototype, 'iceConnectіonState', {
+    get: function () {
+        return this.peerconnetion.iceConnectionState;
+    }
+});
+
+Object.defineProperty(TraceablePeerConnection.prototype, 'localDescription', {
+    get: function () {
+        return this.peerconnection.localDescription;
+    }
+});
+
+Object.defineProperty(TraceablePeerConnection.prototype, 'remoteDescription', {
+    get: function () {
+        return this.peerconnection.remoteDescription;
+    }
+});
 
 TraceablePeerConnection.prototype.addStream = function (stream) {
     this.trace('addStream', stream.id);
@@ -3142,14 +3159,16 @@ function PeerConnection(config, constraints) {
 
 util.inherits(PeerConnection, WildEmitter);
 
-if (PeerConnection.prototype.__defineGetter__) {
-    PeerConnection.prototype.__defineGetter__('signalingState', function () {
+Object.defineProperty(PeerConnection.prototype, 'signalingState', {
+    get: function () {
         return this.pc.signalingState;
-    });
-    PeerConnection.prototype.__defineGetter__('iceConnectionState', function () {
+    }
+});
+Object.defineProperty(PeerConnection.prototype, 'iceConnectionState', {
+    get: function () {
         return this.pc.iceConnectionState;
-    });
-}
+    }
+});
 
 // Add a stream to the peer connection object
 PeerConnection.prototype.addStream = function (stream) {
