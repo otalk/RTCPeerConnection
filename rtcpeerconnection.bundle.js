@@ -1362,6 +1362,7 @@ function dumpSDP(description) {
 }
 
 function TraceablePeerConnection(config, constraints) {
+    console.log('tp init');
     var self = this;
     WildEmitter.call(this);
 
@@ -1434,9 +1435,9 @@ Object.defineProperty(TraceablePeerConnection.prototype, 'signalingState', {
     }
 });
 
-Object.defineProperty(TraceablePeerConnection.prototype, 'iceConnectіonState', {
+Object.defineProperty(TraceablePeerConnection.prototype, 'iceConnectionState', {
     get: function () {
-        return this.peerconnetion.iceConnectionState;
+        return this.peerconnection.iceConnectionState;
     }
 });
 
@@ -3166,6 +3167,7 @@ Object.defineProperty(PeerConnection.prototype, 'signalingState', {
 });
 Object.defineProperty(PeerConnection.prototype, 'iceConnectionState', {
     get: function () {
+        console.log('get', this.pc.iceConnectionState);
         return this.pc.iceConnectionState;
     }
 });

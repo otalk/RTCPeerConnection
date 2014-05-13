@@ -71,6 +71,7 @@ Object.defineProperty(PeerConnection.prototype, 'signalingState', {
 });
 Object.defineProperty(PeerConnection.prototype, 'iceConnectionState', {
     get: function () {
+        console.log('get', this.pc.iceConnectionState);
         return this.pc.iceConnectionState;
     }
 });
