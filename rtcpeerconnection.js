@@ -192,6 +192,7 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
     offer.type = 'offer';
     if (offer.jingle) {
         offer.sdp = SJJ.toSessionSDP(offer.jingle, self.config.sdpSessionID);
+        self.remoteDescription = offer.jingle;
     }
     self.pc.setRemoteDescription(new webrtc.SessionDescription(offer), function () {
         cb();
