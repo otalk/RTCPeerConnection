@@ -60,6 +60,10 @@ function PeerConnection(config, constraints) {
             logger.log('PeerConnection event:', arguments);
         });
     }
+    this.hadLocalStunCandidate = false;
+    this.hadRemoteStunCandidate = false;
+    this.hadLocalRelayCandidate = false;
+    this.hadRemoteRelayCandidate = false;
 }
 
 util.inherits(PeerConnection, WildEmitter);
@@ -71,7 +75,6 @@ Object.defineProperty(PeerConnection.prototype, 'signalingState', {
 });
 Object.defineProperty(PeerConnection.prototype, 'iceConnectionState', {
     get: function () {
-        console.log('get', this.pc.iceConnectionState);
         return this.pc.iceConnectionState;
     }
 });
@@ -99,7 +102,6 @@ PeerConnection.prototype.processIce = function (update, cb) {
             var mid = content.name;
 
             candidates.forEach(function (candidate) {
-                console.log('addicecandidate');
                 var iceCandidate = SJJ.toCandidateSDP(candidate) + '\r\n';
                 self.pc.addIceCandidate(new webrtc.IceCandidate({
                     candidate: iceCandidate,
@@ -116,10 +118,22 @@ PeerConnection.prototype.processIce = function (update, cb) {
                 }
                 */
                 );
+                if (candidate.type === 'srflx') {
+                    this.hadRemoteStunCandidate = true;
+                }
+                else if (candidate.type === 'relay') {
+                    this.hadRemoteRelayCandidate = true;
+                }
             });
         });
     } else {
         self.pc.addIceCandidate(new webrtc.IceCandidate(update.candidate));
+        if (update.candidate.candidate.indexOf('typ srflx') !== -1) {
+            this.hadRemoteStunCandidate = true;
+        }
+        else if (update.candidate.candidate.indexOf('typ relay') !== -1) {
+            this.hadRemoteRelayCandidate = true;
+        }
     }
     cb();
 };
@@ -335,6 +349,12 @@ PeerConnection.prototype._onIce = function (event) {
                     }
                 }]
             };
+            if (event.candidate.indexOf('typ srflx') !== -1) {
+                this.hadLocalStunCandidate = true;
+            }
+            else if (event.candidate.indexOf('typ relay') !== -1) {
+                this.hadLocalRelayCandidate = true;
+            }
         }
 
         this.emit('ice', expandedCandidate);
