@@ -3445,12 +3445,12 @@ PeerConnection.prototype._onIce = function (event) {
                     }
                 }]
             };
-            if (event.candidate.indexOf('typ srflx') !== -1) {
-                this.hadLocalStunCandidate = true;
-            }
-            else if (event.candidate.indexOf('typ relay') !== -1) {
-                this.hadLocalRelayCandidate = true;
-            }
+        }
+        if (ice.candidate.indexOf('typ srflx') !== -1) {
+            this.hadLocalStunCandidate = true;
+        }
+        else if (ice.candidate.indexOf('typ relay') !== -1) {
+            this.hadLocalRelayCandidate = true;
         }
 
         this.emit('ice', expandedCandidate);
