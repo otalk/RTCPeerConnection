@@ -119,20 +119,20 @@ PeerConnection.prototype.processIce = function (update, cb) {
                 */
                 );
                 if (candidate.type === 'srflx') {
-                    this.hadRemoteStunCandidate = true;
+                    self.hadRemoteStunCandidate = true;
                 }
                 else if (candidate.type === 'relay') {
-                    this.hadRemoteRelayCandidate = true;
+                    self.hadRemoteRelayCandidate = true;
                 }
             });
         });
     } else {
         self.pc.addIceCandidate(new webrtc.IceCandidate(update.candidate));
         if (update.candidate.candidate.indexOf('typ srflx') !== -1) {
-            this.hadRemoteStunCandidate = true;
+            self.hadRemoteStunCandidate = true;
         }
         else if (update.candidate.candidate.indexOf('typ relay') !== -1) {
-            this.hadRemoteRelayCandidate = true;
+            self.hadRemoteRelayCandidate = true;
         }
     }
     cb();
