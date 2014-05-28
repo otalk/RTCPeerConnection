@@ -1362,7 +1362,6 @@ function dumpSDP(description) {
 }
 
 function TraceablePeerConnection(config, constraints) {
-    console.log('tp init');
     var self = this;
     WildEmitter.call(this);
 
@@ -1425,6 +1424,8 @@ function TraceablePeerConnection(config, constraints) {
             self.ondatachannel(event);
         }
     };
+    this.getLocalStreams = this.peerconnection.getLocalStreams.bind(this.peerconnection);
+    this.getRemoteStreams = this.peerconnection.getRemoteStreams.bind(this.peerconnection);
 }
 
 util.inherits(TraceablePeerConnection, WildEmitter);
@@ -3110,6 +3111,10 @@ function PeerConnection(config, constraints) {
     config.iceServers = config.iceServers || [];
 
     this.pc = new peerconn(config, constraints);
+
+    this.getLocalStreams = this.pc.getLocalStreams.bind(this.pc);
+    this.getRemoteStreams = this.pc.getRemoteStreams.bind(this.pc);
+
     // proxy events 
     this.pc.on('*', function () {
         self.emit.apply(self, arguments);

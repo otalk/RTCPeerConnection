@@ -14,6 +14,10 @@ function PeerConnection(config, constraints) {
     config.iceServers = config.iceServers || [];
 
     this.pc = new peerconn(config, constraints);
+
+    this.getLocalStreams = this.pc.getLocalStreams.bind(this.pc);
+    this.getRemoteStreams = this.pc.getRemoteStreams.bind(this.pc);
+
     // proxy events 
     this.pc.on('*', function () {
         self.emit.apply(self, arguments);
