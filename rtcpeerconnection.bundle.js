@@ -851,6 +851,18 @@ exports.rtpmap = function (line) {
     return parsed;
 };
 
+exports.sctpmap = function (line) {
+    // based on -05 draft
+    var parts = line.substr(10).split(' ');
+    var parsed = {
+        number: parts.shift(),
+        protocol: parts.shift(),
+        streams: parts.shift()
+    };
+    return parsed;
+};
+
+
 exports.fmtp = function (line) {
     var kv, key, value;
     var parts = line.substr(line.indexOf(' ') + 1).split(';');
@@ -1062,16 +1074,19 @@ exports.toMediaJSON = function (media, session, creator) {
         transport: {
             transType: 'iceUdp',
             candidates: [],
-            fingerprints: []
+            fingerprints: [],
         }
     };
+    if (mline.media == 'application') {
+        // FIXME: the description is most likely to be independent
+        // of the SDP and should be processed by other parts of the library
+        content.description = {
+            descType: 'datachannel'
+        };
+        content.transport.sctp = [];
+    }
     var desc = content.description;
     var trans = content.transport;
-
-    var ssrc = parsers.findLine('a=ssrc:', lines);
-    if (ssrc) {
-        desc.ssrc = ssrc.substr(7).split(' ')[0];
-    }
 
     // If we have a mid, use that for the content name instead.
     var mid = parsers.findLine('a=mid:', lines);
@@ -1089,59 +1104,67 @@ exports.toMediaJSON = function (media, session, creator) {
         content.senders = 'none';
     }
 
-    var rtpmapLines = parsers.findLines('a=rtpmap:', lines);
-    rtpmapLines.forEach(function (line) {
-        var payload = parsers.rtpmap(line);
-        payload.feedback = [];
+    if (desc.descType == 'rtp') {
+        var ssrc = parsers.findLine('a=ssrc:', lines);
+        if (ssrc) {
+            desc.ssrc = ssrc.substr(7).split(' ')[0];
+        }
 
-        var fmtpLines = parsers.findLines('a=fmtp:' + payload.id, lines);
-        fmtpLines.forEach(function (line) {
-            payload.parameters = parsers.fmtp(line);
+        var rtpmapLines = parsers.findLines('a=rtpmap:', lines);
+        rtpmapLines.forEach(function (line) {
+            var payload = parsers.rtpmap(line);
+            payload.feedback = [];
+
+            var fmtpLines = parsers.findLines('a=fmtp:' + payload.id, lines);
+            fmtpLines.forEach(function (line) {
+                payload.parameters = parsers.fmtp(line);
+            });
+
+            var fbLines = parsers.findLines('a=rtcp-fb:' + payload.id, lines);
+            fbLines.forEach(function (line) {
+                payload.feedback.push(parsers.rtcpfb(line));
+            });
+
+            desc.payloads.push(payload);
         });
 
-        var fbLines = parsers.findLines('a=rtcp-fb:' + payload.id, lines);
+        var cryptoLines = parsers.findLines('a=crypto:', lines, sessionLines);
+        cryptoLines.forEach(function (line) {
+            desc.encryption.push(parsers.crypto(line));
+        });
+
+        if (parsers.findLine('a=rtcp-mux', lines)) {
+            desc.mux = true;
+        }
+
+        var fbLines = parsers.findLines('a=rtcp-fb:*', lines);
         fbLines.forEach(function (line) {
-            payload.feedback.push(parsers.rtcpfb(line));
+            desc.feedback.push(parsers.rtcpfb(line));
         });
 
-        desc.payloads.push(payload);
-    });
+        var extLines = parsers.findLines('a=extmap:', lines);
+        extLines.forEach(function (line) {
+            var ext = parsers.extmap(line);
 
-    var cryptoLines = parsers.findLines('a=crypto:', lines, sessionLines);
-    cryptoLines.forEach(function (line) {
-        desc.encryption.push(parsers.crypto(line));
-    });
+            var senders = {
+                sendonly: 'responder',
+                recvonly: 'initiator',
+                sendrecv: 'both',
+                inactive: 'none'
+            };
+            ext.senders = senders[ext.senders];
 
-    if (parsers.findLine('a=rtcp-mux', lines)) {
-        desc.mux = true;
+            desc.headerExtensions.push(ext);
+        });
+
+        var ssrcGroupLines = parsers.findLines('a=ssrc-group:', lines);
+        desc.sourceGroups = parsers.sourceGroups(ssrcGroupLines || []);
+
+        var ssrcLines = parsers.findLines('a=ssrc:', lines);
+        desc.sources = parsers.sources(ssrcLines || []);
     }
 
-    var fbLines = parsers.findLines('a=rtcp-fb:*', lines);
-    fbLines.forEach(function (line) {
-        desc.feedback.push(parsers.rtcpfb(line));
-    });
-
-    var extLines = parsers.findLines('a=extmap:', lines);
-    extLines.forEach(function (line) {
-        var ext = parsers.extmap(line);
-
-        var senders = {
-            sendonly: 'responder',
-            recvonly: 'initiator',
-            sendrecv: 'both',
-            inactive: 'none'
-        };
-        ext.senders = senders[ext.senders];
-
-        desc.headerExtensions.push(ext);
-    });
-
-    var ssrcGroupLines = parsers.findLines('a=ssrc-group:', lines);
-    desc.sourceGroups = parsers.sourceGroups(ssrcGroupLines || []);
-
-    var ssrcLines = parsers.findLines('a=ssrc:', lines);
-    desc.sources = parsers.sources(ssrcLines || []);
-
+    // transport specific attributes
     var fingerprintLines = parsers.findLines('a=fingerprint:', lines, sessionLines);
     fingerprintLines.forEach(function (line) {
         var fp = parsers.fingerprint(line);
@@ -1162,6 +1185,14 @@ exports.toMediaJSON = function (media, session, creator) {
         var candidateLines = parsers.findLines('a=candidate:', lines, sessionLines);
         candidateLines.forEach(function (line) {
             trans.candidates.push(exports.toCandidateJSON(line));
+        });
+    }
+
+    if (desc.descType == 'datachannel') {
+        var sctpmapLines = parsers.findLines('a=sctpmap:', lines);
+        sctpmapLines.forEach(function (line) {
+            var sctp = parsers.sctpmap(line);
+            trans.sctp.push(sctp);
         });
     }
 
@@ -1216,22 +1247,36 @@ exports.toMediaSDP = function (content) {
     var payloads = desc.payloads || [];
     var fingerprints = (transport && transport.fingerprints) || [];
 
-    var mline = [desc.media, '1'];
-
-    if ((desc.encryption && desc.encryption.length > 0) || (fingerprints.length > 0)) {
-        mline.push('RTP/SAVPF');
+    var mline = [];
+    if (desc.descType == 'datachannel') {
+        mline.push('application');
+        mline.push('1');
+        mline.push('DTLS/SCTP');
+        if (transport.sctp) {
+            transport.sctp.forEach(function (map) {
+                mline.push(map.number);
+            });
+        }
     } else {
-        mline.push('RTP/AVPF');
+        mline.push(desc.media);
+        mline.push('1');
+        if ((desc.encryption && desc.encryption.length > 0) || (fingerprints.length > 0)) {
+            mline.push('RTP/SAVPF');
+        } else {
+            mline.push('RTP/AVPF');
+        }
+        payloads.forEach(function (payload) {
+            mline.push(payload.id);
+        });
     }
-    payloads.forEach(function (payload) {
-        mline.push(payload.id);
-    });
 
 
     sdp.push('m=' + mline.join(' '));
 
     sdp.push('c=IN IP4 0.0.0.0');
-    sdp.push('a=rtcp:1 IN IP4 0.0.0.0');
+    if (desc.descType == 'rtp') {
+        sdp.push('a=rtcp:1 IN IP4 0.0.0.0');
+    }
 
     if (transport) {
         if (transport.ufrag) {
@@ -1246,9 +1291,16 @@ exports.toMediaSDP = function (content) {
         fingerprints.forEach(function (fingerprint) {
             sdp.push('a=fingerprint:' + fingerprint.hash + ' ' + fingerprint.value);
         });
+        if (transport.sctp) {
+            transport.sctp.forEach(function (map) {
+                sdp.push('a=sctpmap:' + map.number + ' ' + map.protocol + ' ' + map.streams);
+            });
+        }
     }
 
-    sdp.push('a=' + (senders[content.senders] || 'sendrecv'));
+    if (desc.descType == 'rtp') {
+        sdp.push('a=' + (senders[content.senders] || 'sendrecv'));
+    }
     sdp.push('a=mid:' + content.name);
 
     if (desc.mux) {
@@ -1327,7 +1379,7 @@ exports.toCandidateSDP = function (candidate) {
 
     sdp.push(candidate.foundation);
     sdp.push(candidate.component);
-    sdp.push(candidate.protocol);
+    sdp.push(candidate.protocol.toUpperCase());
     sdp.push(candidate.priority);
     sdp.push(candidate.ip);
     sdp.push(candidate.port);
@@ -3114,6 +3166,8 @@ function PeerConnection(config, constraints) {
 
     this.getLocalStreams = this.pc.getLocalStreams.bind(this.pc);
     this.getRemoteStreams = this.pc.getRemoteStreams.bind(this.pc);
+    this.addStream = this.pc.addStream.bind(this.pc);
+    this.removeStream = this.pc.removeStream.bind(this.pc);
 
     // proxy events 
     this.pc.on('*', function () {
