@@ -329,6 +329,9 @@ PeerConnection.prototype._onIce = function (event) {
         };
 
         if (self.config.useJingle) {
+            if (!ice.sdpMid) { // firefox doesn't set this
+                ice.sdpMid = self.localDescription.contents[ice.sdpMLineIndex].name;
+            }
             if (!self.config.ice[ice.sdpMid]) {
                 var jingle = SJJ.toSessionJSON(self.pc.localDescription.sdp, self.config.isInitiator ? 'initiator' : 'responder');
                 _.each(jingle.contents, function (content) {
