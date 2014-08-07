@@ -133,6 +133,11 @@ PeerConnection.prototype.processIce = function (update, cb) {
             });
         });
     } else {
+        // working around https://code.google.com/p/webrtc/issues/detail?id=3669
+        if (update.candidate.candidate.indexOf('a=') !== 0) {
+            update.candidate.candidate = 'a=' + update.candidate.candidate;
+        }
+
         self.pc.addIceCandidate(new webrtc.IceCandidate(update.candidate));
         if (update.candidate.candidate.indexOf('typ srflx') !== -1) {
             self.hadRemoteStunCandidate = true;
