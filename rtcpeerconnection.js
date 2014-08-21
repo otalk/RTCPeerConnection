@@ -70,6 +70,15 @@ function PeerConnection(config, constraints) {
     this.hadRemoteStunCandidate = false;
     this.hadLocalRelayCandidate = false;
     this.hadRemoteRelayCandidate = false;
+
+    // keeping references for all our data channels
+    // so they dont get garbage collected
+    // can be removed once the following bugs have been fixed
+    // https://crbug.com/405545 
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=964092
+    // to be filed for opera
+    this._remoteDataChannels = [];
+    this._localDataChannels = [];
 }
 
 util.inherits(PeerConnection, WildEmitter);
@@ -281,6 +290,10 @@ PeerConnection.prototype.handleAnswer = function (answer, cb) {
 // Close the peer connection
 PeerConnection.prototype.close = function () {
     this.pc.close();
+
+    this._localDataChannels = [];
+    this._remoteDataChannels = [];
+
     this.emit('close');
 };
 
@@ -380,7 +393,11 @@ PeerConnection.prototype._onIce = function (event) {
 // Internal method for processing a new data channel being added by the
 // other peer.
 PeerConnection.prototype._onDataChannel = function (event) {
-    this.emit('addChannel', event.channel);
+    // make sure we keep a reference so this doesn't get garbage collected
+    var channel = event.channel;
+    this._remoteDataChannels.push(channel);
+
+    this.emit('addChannel', channel);
 };
 
 // Internal handling of adding stream
@@ -393,6 +410,10 @@ PeerConnection.prototype._onAddStream = function (event) {
 // http://dev.w3.org/2011/webrtc/editor/webrtc.html#idl-def-RTCDataChannelInit
 PeerConnection.prototype.createDataChannel = function (name, opts) {
     var channel = this.pc.createDataChannel(name, opts);
+
+    // make sure we keep a reference so this doesn't get garbage collected
+    this._localDataChannels.push(channel);
+
     return channel;
 };
 
