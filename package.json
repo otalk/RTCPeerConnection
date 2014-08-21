@@ -17,7 +17,7 @@
   "license": "MIT",
   "dependencies": {
     "wildemitter": "1.x",
-    "webrtcsupport": "0.7.x",
+    "webrtcsupport": "^1.0.0",
     "traceablepeerconnection": "0.2.x",
     "sdp-jingle-json": "1.x",
     "underscore": "1.x"
