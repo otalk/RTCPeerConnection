@@ -268,7 +268,7 @@ PeerConnection.prototype.answerBroadcastOnly = function (cb) {
 // Answer an offer with given constraints default is audio/video
 PeerConnection.prototype.answer = function (constraints, cb, mangler) {
     var self = this;
-    var hasConstraints = arguments.length === 2;
+    var hasConstraints = arguments.length >= 2;
     var callback = hasConstraints ? cb : constraints;
     var mediaConstraints = hasConstraints ? constraints : {
             mandatory: {
