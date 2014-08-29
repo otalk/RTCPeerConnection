@@ -4,6 +4,7 @@ var webrtc = require('webrtcsupport');
 var SJJ = require('sdp-jingle-json');
 var WildEmitter = require('wildemitter');
 var peerconn = require('traceablepeerconnection');
+var SDPManglers = require('./sdp-mangler');
 
 function PeerConnection(config, constraints) {
     var self = this;
@@ -167,9 +168,9 @@ PeerConnection.prototype.processIce = function (update, cb) {
 };
 
 // Generate and emit an offer with the given constraints
-PeerConnection.prototype.offer = function (constraints, cb) {
+PeerConnection.prototype.offer = function (constraints, cb, mangler) {
     var self = this;
-    var hasConstraints = arguments.length === 2;
+    var hasConstraints = arguments.length >= 2;
     var mediaConstraints = hasConstraints ? constraints : {
             mandatory: {
                 OfferToReceiveAudio: true,
@@ -182,6 +183,7 @@ PeerConnection.prototype.offer = function (constraints, cb) {
     // Actually generate the offer
     this.pc.createOffer(
         function (offer) {
+            if (mangler) offer = mangler(offer);
             self.pc.setLocalDescription(offer,
                 function () {
                     var jingle;
@@ -264,9 +266,9 @@ PeerConnection.prototype.answerBroadcastOnly = function (cb) {
 };
 
 // Answer an offer with given constraints default is audio/video
-PeerConnection.prototype.answer = function (constraints, cb) {
+PeerConnection.prototype.answer = function (constraints, cb, mangler) {
     var self = this;
-    var hasConstraints = arguments.length === 2;
+    var hasConstraints = arguments.length >= 2;
     var callback = hasConstraints ? cb : constraints;
     var mediaConstraints = hasConstraints ? constraints : {
             mandatory: {
@@ -275,7 +277,7 @@ PeerConnection.prototype.answer = function (constraints, cb) {
             }
         };
 
-    this._answer(mediaConstraints, callback);
+    this._answer(mediaConstraints, callback, mangler);
 };
 
 // Process an answer
@@ -306,7 +308,7 @@ PeerConnection.prototype.close = function () {
 };
 
 // Internal code sharing for various types of answer methods
-PeerConnection.prototype._answer = function (constraints, cb) {
+PeerConnection.prototype._answer = function (constraints, cb, mangler) {
     cb = cb || function () {};
     var self = this;
     if (!this.pc.remoteDescription) {
@@ -315,6 +317,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
     }
     self.pc.createAnswer(
         function (answer) {
+            if (mangler) answer.sdp = mangler(answer.sdp);
             self.pc.setLocalDescription(answer,
                 function () {
                     var expandedAnswer = {
