@@ -4,6 +4,7 @@ var webrtc = require('webrtcsupport');
 var SJJ = require('sdp-jingle-json');
 var WildEmitter = require('wildemitter');
 var peerconn = require('traceablepeerconnection');
+var SDPManglers = require('./sdp-mangler');
 
 function PeerConnection(config, constraints) {
     var self = this;
@@ -182,7 +183,7 @@ PeerConnection.prototype.offer = function (constraints, cb, mangler) {
     // Actually generate the offer
     this.pc.createOffer(
         function (offer) {
-            if (mangler) offer.sdp = mangler(offer.sdp);
+            if (mangler) offer = mangler(offer);
             self.pc.setLocalDescription(offer,
                 function () {
                     var jingle;
