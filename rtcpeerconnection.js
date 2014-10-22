@@ -313,13 +313,16 @@ PeerConnection.prototype._answer = function (constraints, cb) {
         // the old API is used, call handleOffer
         throw new Error('remoteDescription not set');
     }
-    var enableGrumpySimulcast = constraints.enableGrumpySimulcast || false;
-    delete constraints.enableGrumpySimulcast;
+    // make sure this only gets enabled in Google Chrome
+    var enableChromeNativeSimulcast = (constraints.enableChromeNativeSimulcast && 
+                                       webrtc.prefix === 'webkit' && 
+                                       navigator.appVersion.match(/Chromium\//) === null) || false;
+    delete constraints.enableChromeNativeSimulcast;
     self.pc.createAnswer(
         function (answer) {
             var sim = [];
-            if (enableGrumpySimulcast) {
-                // grumpy simulcast part 1: add another SSRC
+            if (enableChromeNativeSimulcast) {
+                // native simulcast part 1: add another SSRC
                 answer.jingle = SJJ.toSessionJSON(answer.sdp);
                 if (answer.jingle.contents.length >= 2 && answer.jingle.contents[1].name === 'video') {
                     var newssrc = JSON.parse(JSON.stringify(answer.jingle.contents[1].description.sources[0]));
@@ -350,8 +353,8 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                         self.localDescription = jingle;
                         expandedAnswer.jingle = jingle;
                     }
-                    if (enableGrumpySimulcast) {
-                        // grumpy simulcast part 2: 
+                    if (enableChromeNativeSimulcast) {
+                        // native simulcast part 2: 
                         // signal multiple tracks to the receiver
                         if (!expandedAnswer.jingle) {
                             expandedAnswer.jingle = SJJ.toSessionJSON(answer.sdp);
