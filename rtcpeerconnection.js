@@ -234,6 +234,9 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
     offer.type = 'offer';
     if (offer.jingle) {
         offer.sdp = SJJ.toSessionSDP(offer.jingle, self.config.sdpSessionID);
+        if (offer.sdp.indexOf('a=x-google-flag:conference') == -1) {
+            offer.sdp = offer.sdp.replace('a=mid:video\r\n', 'a=mid:video\r\na=x-google-flag:conference\r\n');
+        }
         self.remoteDescription = offer.jingle;
     }
     self.pc.setRemoteDescription(new webrtc.SessionDescription(offer), function () {
@@ -313,8 +316,30 @@ PeerConnection.prototype._answer = function (constraints, cb) {
         // the old API is used, call handleOffer
         throw new Error('remoteDescription not set');
     }
+    var enableGrumpySimulcast = constraints.enableGrumpySimulcast || false;
+    delete constraints.enableGrumpySimulcast;
     self.pc.createAnswer(
         function (answer) {
+            if (enableGrumpySimulcast) {
+                // grumpy simulcast part 1: add another SSRC
+                answer.jingle = SJJ.toSessionJSON(answer.sdp);
+
+                var sim = [];
+                var newssrc = JSON.parse(JSON.stringify(answer.jingle.contents[1].description.sources[0]));
+                newssrc.ssrc = '' + Math.floor(Math.random() * 0xffffffff); // FIXME: look for conflicts
+                answer.jingle.contents[1].description.sources.push(newssrc);
+
+                answer.jingle.contents[1].description.sources.forEach(function (source) {
+                    sim.push(source.ssrc);
+                });
+                answer.jingle.contents[1].description.sourceGroups = [
+                    {
+                        semantics: 'SIM',
+                        sources: sim
+                    }
+                ];
+                answer.sdp = SJJ.toSessionSDP(answer.jingle, self.config.sdpSessionID);
+            }
             self.pc.setLocalDescription(answer,
                 function () {
                     var expandedAnswer = {
@@ -326,6 +351,30 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                         jingle.sid = self.config.sid;
                         self.localDescription = jingle;
                         expandedAnswer.jingle = jingle;
+                    }
+                    if (enableGrumpySimulcast) {
+                        // grumpy simulcast part 2: 
+                        // signal multiple tracks to the receiver
+                        if (!expandedAnswer.jingle) {
+                            expandedAnswer.jingle = SJJ.toSessionJSON(answer.sdp);
+                        }
+                        // FIXME: only over the sources in this sim group
+                        var simgroup = expandedAnswer.jingle.contents[1].description.sourceGroups.sources;
+                        expandedAnswer.jingle.contents[1].description.sources.forEach(function (source, idx) {
+                            // FIXME: need better checks, assumes [0] => cname, [1] => msid
+                            source.parameters[1].value += '-' + idx;
+                        });
+                        // remove obsolete label + mslabel
+                        expandedAnswer.jingle.contents[1].description.sources.forEach(function (source, idx) {
+                            console.log(source.parameters.map(function (parameter) {
+                                return !(parameter.name == 'mslabel' || parameter.name == 'label');
+                            }));
+                            /*
+                            source.parameters.pop(); // pop mslabel
+                            source.parameters.pop(); // pop label
+                            */
+                        });
+                        expandedAnswer.sdp = SJJ.toSessionSDP(expandedAnswer.jingle);
                     }
                     self.emit('answer', expandedAnswer);
                     cb(null, expandedAnswer);
