@@ -234,9 +234,6 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
     offer.type = 'offer';
     if (offer.jingle) {
         offer.sdp = SJJ.toSessionSDP(offer.jingle, self.config.sdpSessionID);
-        if (offer.sdp.indexOf('a=x-google-flag:conference') == -1) {
-            offer.sdp = offer.sdp.replace('a=mid:video\r\n', 'a=mid:video\r\na=x-google-flag:conference\r\n');
-        }
         self.remoteDescription = offer.jingle;
     }
     self.pc.setRemoteDescription(new webrtc.SessionDescription(offer), function () {
