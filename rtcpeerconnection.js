@@ -317,25 +317,26 @@ PeerConnection.prototype._answer = function (constraints, cb) {
     delete constraints.enableGrumpySimulcast;
     self.pc.createAnswer(
         function (answer) {
+            var sim = [];
             if (enableGrumpySimulcast) {
                 // grumpy simulcast part 1: add another SSRC
                 answer.jingle = SJJ.toSessionJSON(answer.sdp);
+                if (answer.jingle.contents.length >= 2 && answer.jingle.contents[1].name === 'video') {
+                    var newssrc = JSON.parse(JSON.stringify(answer.jingle.contents[1].description.sources[0]));
+                    newssrc.ssrc = '' + Math.floor(Math.random() * 0xffffffff); // FIXME: look for conflicts
+                    answer.jingle.contents[1].description.sources.push(newssrc);
 
-                var sim = [];
-                var newssrc = JSON.parse(JSON.stringify(answer.jingle.contents[1].description.sources[0]));
-                newssrc.ssrc = '' + Math.floor(Math.random() * 0xffffffff); // FIXME: look for conflicts
-                answer.jingle.contents[1].description.sources.push(newssrc);
-
-                answer.jingle.contents[1].description.sources.forEach(function (source) {
-                    sim.push(source.ssrc);
-                });
-                answer.jingle.contents[1].description.sourceGroups = [
-                    {
-                        semantics: 'SIM',
-                        sources: sim
-                    }
-                ];
-                answer.sdp = SJJ.toSessionSDP(answer.jingle, self.config.sdpSessionID);
+                    answer.jingle.contents[1].description.sources.forEach(function (source) {
+                        sim.push(source.ssrc);
+                    });
+                    answer.jingle.contents[1].description.sourceGroups = [
+                        {
+                            semantics: 'SIM',
+                            sources: sim
+                        }
+                    ];
+                    answer.sdp = SJJ.toSessionSDP(answer.jingle, self.config.sdpSessionID);
+                }
             }
             self.pc.setLocalDescription(answer,
                 function () {
@@ -355,21 +356,21 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                         if (!expandedAnswer.jingle) {
                             expandedAnswer.jingle = SJJ.toSessionJSON(answer.sdp);
                         }
-                        // FIXME: only over the sources in this sim group
-                        var simgroup = expandedAnswer.jingle.contents[1].description.sourceGroups.sources;
                         expandedAnswer.jingle.contents[1].description.sources.forEach(function (source, idx) {
-                            // FIXME: need better checks, assumes [0] => cname, [1] => msid
-                            source.parameters[1].value += '-' + idx;
+                            if (sim.indexOf(source.ssrc) != -1) {
+                                source.parameters = source.parameters.map(function (parameter) {
+                                    if (parameter.key === 'msid') {
+                                        parameter.value += '-' + idx;
+                                    }
+                                    return parameter;
+                                });
+                            }
                         });
-                        // remove obsolete label + mslabel
+                        // remove obsolete label + mslabel lines
                         expandedAnswer.jingle.contents[1].description.sources.forEach(function (source, idx) {
-                            console.log(source.parameters.map(function (parameter) {
-                                return !(parameter.name == 'mslabel' || parameter.name == 'label');
-                            }));
-                            /*
-                            source.parameters.pop(); // pop mslabel
-                            source.parameters.pop(); // pop label
-                            */
+                            source.parameters = source.parameters.filter(function (parameter) {
+                                return !(parameter.key == 'mslabel' || parameter.key == 'label');
+                            });
                         });
                         expandedAnswer.sdp = SJJ.toSessionSDP(expandedAnswer.jingle);
                     }
