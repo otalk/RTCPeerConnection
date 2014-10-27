@@ -313,8 +313,34 @@ PeerConnection.prototype._answer = function (constraints, cb) {
         // the old API is used, call handleOffer
         throw new Error('remoteDescription not set');
     }
+    // make sure this only gets enabled in Google Chrome
+    var enableChromeNativeSimulcast = (constraints.enableChromeNativeSimulcast && 
+                                       webrtc.prefix === 'webkit' && 
+                                       navigator.appVersion.match(/Chromium\//) === null) || false;
+    delete constraints.enableChromeNativeSimulcast;
     self.pc.createAnswer(
         function (answer) {
+            var sim = [];
+            if (enableChromeNativeSimulcast) {
+                // native simulcast part 1: add another SSRC
+                answer.jingle = SJJ.toSessionJSON(answer.sdp);
+                if (answer.jingle.contents.length >= 2 && answer.jingle.contents[1].name === 'video') {
+                    var newssrc = JSON.parse(JSON.stringify(answer.jingle.contents[1].description.sources[0]));
+                    newssrc.ssrc = '' + Math.floor(Math.random() * 0xffffffff); // FIXME: look for conflicts
+                    answer.jingle.contents[1].description.sources.push(newssrc);
+
+                    answer.jingle.contents[1].description.sources.forEach(function (source) {
+                        sim.push(source.ssrc);
+                    });
+                    answer.jingle.contents[1].description.sourceGroups = [
+                        {
+                            semantics: 'SIM',
+                            sources: sim
+                        }
+                    ];
+                    answer.sdp = SJJ.toSessionSDP(answer.jingle, self.config.sdpSessionID);
+                }
+            }
             self.pc.setLocalDescription(answer,
                 function () {
                     var expandedAnswer = {
@@ -326,6 +352,30 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                         jingle.sid = self.config.sid;
                         self.localDescription = jingle;
                         expandedAnswer.jingle = jingle;
+                    }
+                    if (enableChromeNativeSimulcast) {
+                        // native simulcast part 2: 
+                        // signal multiple tracks to the receiver
+                        if (!expandedAnswer.jingle) {
+                            expandedAnswer.jingle = SJJ.toSessionJSON(answer.sdp);
+                        }
+                        expandedAnswer.jingle.contents[1].description.sources.forEach(function (source, idx) {
+                            if (sim.indexOf(source.ssrc) != -1) {
+                                source.parameters = source.parameters.map(function (parameter) {
+                                    if (parameter.key === 'msid') {
+                                        parameter.value += '-' + idx;
+                                    }
+                                    return parameter;
+                                });
+                            }
+                        });
+                        // remove obsolete label + mslabel lines
+                        expandedAnswer.jingle.contents[1].description.sources.forEach(function (source, idx) {
+                            source.parameters = source.parameters.filter(function (parameter) {
+                                return !(parameter.key == 'mslabel' || parameter.key == 'label');
+                            });
+                        });
+                        expandedAnswer.sdp = SJJ.toSessionSDP(expandedAnswer.jingle);
                     }
                     self.emit('answer', expandedAnswer);
                     cb(null, expandedAnswer);
