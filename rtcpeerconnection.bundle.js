@@ -1182,6 +1182,10 @@ exports.toMediaJSON = function (media, session, creator) {
 
         var ssrcLines = parsers.findLines('a=ssrc:', lines);
         desc.sources = parsers.sources(ssrcLines || []);
+
+        if (parsers.findLine('a=x-google-flag:conference', lines, sessionLines)) {
+            desc.googConferenceFlag = true;
+        }
     }
 
     // transport specific attributes
@@ -1337,6 +1341,9 @@ exports.toMediaSDP = function (content) {
     encryption.forEach(function (crypto) {
         sdp.push('a=crypto:' + crypto.tag + ' ' + crypto.cipherSuite + ' ' + crypto.keyParams + (crypto.sessionParams ? ' ' + crypto.sessionParams : ''));
     });
+    if (desc.googConferenceFlag) {
+        sdp.push('a=x-google-flag:conference');
+    }
 
     payloads.forEach(function (payload) {
         var rtpmap = 'a=rtpmap:' + payload.id + ' ' + payload.name + '/' + payload.clockrate;
