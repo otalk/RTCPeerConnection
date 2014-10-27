@@ -3612,12 +3612,10 @@ PeerConnection.prototype._answer = function (constraints, cb) {
         // the old API is used, call handleOffer
         throw new Error('remoteDescription not set');
     }
-    var enableChromeNativeSimulcast = (constraints.enableChromeNativeSimulcast && 
-                                       webrtc.prefix === 'webkit' && 
-                                       navigator.appVersion.match(/Chromium\//) === null) || false;
     // make sure this only gets enabled in Google Chrome
-    if (enableChromeNativeSimulcast) {
-    }
+    var enableChromeNativeSimulcast = (constraints.enableChromeNativeSimulcast &&
+                                       webrtc.prefix === 'webkit' &&
+                                       navigator.appVersion.match(/Chromium\//) === null) || false;
     delete constraints.enableChromeNativeSimulcast;
     self.pc.createAnswer(
         function (answer) {

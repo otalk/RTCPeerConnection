@@ -314,8 +314,8 @@ PeerConnection.prototype._answer = function (constraints, cb) {
         throw new Error('remoteDescription not set');
     }
     // make sure this only gets enabled in Google Chrome
-    var enableChromeNativeSimulcast = (constraints.enableChromeNativeSimulcast && 
-                                       webrtc.prefix === 'webkit' && 
+    var enableChromeNativeSimulcast = (constraints.enableChromeNativeSimulcast &&
+                                       webrtc.prefix === 'webkit' &&
                                        navigator.appVersion.match(/Chromium\//) === null) || false;
     delete constraints.enableChromeNativeSimulcast;
     self.pc.createAnswer(
