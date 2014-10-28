@@ -369,12 +369,6 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                                 });
                             }
                         });
-                        // remove obsolete label + mslabel lines
-                        expandedAnswer.jingle.contents[1].description.sources.forEach(function (source, idx) {
-                            source.parameters = source.parameters.filter(function (parameter) {
-                                return !(parameter.key == 'mslabel' || parameter.key == 'label');
-                            });
-                        });
                         expandedAnswer.sdp = SJJ.toSessionSDP(expandedAnswer.jingle);
                     }
                     self.emit('answer', expandedAnswer);

@@ -1454,7 +1454,27 @@ var webrtc = require('webrtcsupport');
 var WildEmitter = require('wildemitter');
 
 function dumpSDP(description) {
-    return 'type: ' + description.type + '\r\n' + description.sdp;
+    return {
+        type: description.type,
+        sdp: description.sdp
+    };
+}
+
+function dumpStream(stream) {
+    var info = {
+        label: stream.id,
+    };
+    if (stream.getAudioTracks().length) {
+        info.audio = stream.getAudioTracks().map(function (track) {
+            return track.id;
+        });
+    }
+    if (stream.getVideoTracks().length) {
+        info.video = stream.getVideoTracks().map(function (track) {
+            return track.id;
+        });
+    }
+    return info;
 }
 
 function TraceablePeerConnection(config, constraints) {
@@ -1473,21 +1493,21 @@ function TraceablePeerConnection(config, constraints) {
 
     this.onicecandidate = null;
     this.peerconnection.onicecandidate = function (event) {
-        self.trace('onicecandidate', JSON.stringify(event.candidate, null, ' '));
+        self.trace('onicecandidate', event.candidate);
         if (self.onicecandidate !== null) {
             self.onicecandidate(event);
         }
     };
     this.onaddstream = null;
     this.peerconnection.onaddstream = function (event) {
-        self.trace('onaddstream', event.stream.id);
+        self.trace('onaddstream', dumpStream(event.stream));
         if (self.onaddstream !== null) {
             self.onaddstream(event);
         }
     };
     this.onremovestream = null;
     this.peerconnection.onremovestream = function (event) {
-        self.trace('onremovestream', event.stream.id);
+        self.trace('onremovestream', dumpStream(event.stream));
         if (self.onremovestream !== null) {
             self.onremovestream(event);
         }
@@ -1551,12 +1571,12 @@ Object.defineProperty(TraceablePeerConnection.prototype, 'remoteDescription', {
 });
 
 TraceablePeerConnection.prototype.addStream = function (stream) {
-    this.trace('addStream', stream.id);
+    this.trace('addStream', dumpStream(stream));
     this.peerconnection.addStream(stream);
 };
 
 TraceablePeerConnection.prototype.removeStream = function (stream) {
-    this.trace('removeStream', stream.id);
+    this.trace('removeStream', dumpStream(stream));
     this.peerconnection.removeStream(stream);
 };
 
@@ -1608,7 +1628,7 @@ TraceablePeerConnection.prototype.close = function () {
 
 TraceablePeerConnection.prototype.createOffer = function (successCallback, failureCallback, constraints) {
     var self = this;
-    this.trace('createOffer', JSON.stringify(constraints, null, ' '));
+    this.trace('createOffer', constraints);
     this.peerconnection.createOffer(
         function (offer) {
             self.trace('createOfferOnSuccess', dumpSDP(offer));
@@ -1624,7 +1644,7 @@ TraceablePeerConnection.prototype.createOffer = function (successCallback, failu
 
 TraceablePeerConnection.prototype.createAnswer = function (successCallback, failureCallback, constraints) {
     var self = this;
-    this.trace('createAnswer', JSON.stringify(constraints, null, ' '));
+    this.trace('createAnswer', constraints);
     this.peerconnection.createAnswer(
         function (answer) {
             self.trace('createAnswerOnSuccess', dumpSDP(answer));
@@ -1640,12 +1660,10 @@ TraceablePeerConnection.prototype.createAnswer = function (successCallback, fail
 
 TraceablePeerConnection.prototype.addIceCandidate = function (candidate, successCallback, failureCallback) {
     var self = this;
-    this.trace('addIceCandidate', JSON.stringify(candidate, null, ' '));
-    this.peerconnection.addIceCandidate(candidate);
-    /* maybe later
-    this.peerconnection.addIceCandidate(candidate, 
-        function () {                                
-            self.trace('addIceCandidateOnSuccess');
+    this.trace('addIceCandidate', candidate);
+    this.peerconnection.addIceCandidate(candidate,
+        function () {
+            //self.trace('addIceCandidateOnSuccess');
             successCallback();
         },
         function (err) {
@@ -1653,7 +1671,6 @@ TraceablePeerConnection.prototype.addIceCandidate = function (candidate, success
             failureCallback(err);
         }
     );
-    */
 };
 
 TraceablePeerConnection.prototype.getStats = function (callback, errback) {
@@ -1666,45 +1683,7 @@ TraceablePeerConnection.prototype.getStats = function (callback, errback) {
 
 module.exports = TraceablePeerConnection;
 
-},{"util":2,"webrtcsupport":8,"wildemitter":11}],8:[function(require,module,exports){
-// created by @HenrikJoreteg
-var prefix;
-var isChrome = false;
-var isFirefox = false;
-var ua = window.navigator.userAgent.toLowerCase();
-
-// basic sniffing
-if (ua.indexOf('firefox') !== -1) {
-    prefix = 'moz';
-    isFirefox = true;
-} else if (ua.indexOf('chrome') !== -1) {
-    prefix = 'webkit';
-    isChrome = true;
-}
-
-var PC = window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
-var IceCandidate = window.mozRTCIceCandidate || window.RTCIceCandidate;
-var SessionDescription = window.mozRTCSessionDescription || window.RTCSessionDescription;
-var MediaStream = window.webkitMediaStream || window.MediaStream;
-var screenSharing = window.location.protocol === 'https:' && window.navigator.userAgent.match('Chrome') && parseInt(window.navigator.userAgent.match(/Chrome\/(.*) /)[1], 10) >= 26;
-var AudioContext = window.webkitAudioContext || window.AudioContext;
-
-
-// export support flags and constructors.prototype && PC
-module.exports = {
-    support: !!PC,
-    dataChannel: isChrome || isFirefox || (PC && PC.prototype && PC.prototype.createDataChannel),
-    prefix: prefix,
-    webAudio: !!(AudioContext && AudioContext.prototype.createMediaStreamSource),
-    mediaStream: !!(MediaStream && MediaStream.prototype.removeTrack),
-    screenSharing: !!screenSharing,
-    AudioContext: AudioContext,
-    PeerConnection: PC,
-    SessionDescription: SessionDescription,
-    IceCandidate: IceCandidate
-};
-
-},{}],9:[function(require,module,exports){
+},{"util":2,"webrtcsupport":9,"wildemitter":10}],8:[function(require,module,exports){
 //     Underscore.js 1.7.0
 //     http://underscorejs.org
 //     (c) 2009-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -3121,7 +3100,7 @@ module.exports = {
   }
 }.call(this));
 
-},{}],10:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 // created by @HenrikJoreteg
 var prefix;
 var isChrome = false;
@@ -3162,7 +3141,7 @@ module.exports = {
     MediaStream: MediaStream
 };
 
-},{}],11:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 /*
 WildEmitter.js is a slim little event emitter by @henrikjoreteg largely based 
 on @visionmedia's Emitter from UI Kit.
@@ -3303,7 +3282,7 @@ WildEmitter.prototype.getWildcardCallbacks = function (eventName) {
     return result;
 };
 
-},{}],12:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 var _ = require('underscore');
 var util = require('util');
 var webrtc = require('webrtcsupport');
@@ -3675,12 +3654,6 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                                 });
                             }
                         });
-                        // remove obsolete label + mslabel lines
-                        expandedAnswer.jingle.contents[1].description.sources.forEach(function (source, idx) {
-                            source.parameters = source.parameters.filter(function (parameter) {
-                                return !(parameter.key == 'mslabel' || parameter.key == 'label');
-                            });
-                        });
                         expandedAnswer.sdp = SJJ.toSessionSDP(expandedAnswer.jingle);
                     }
                     self.emit('answer', expandedAnswer);
@@ -3817,7 +3790,7 @@ PeerConnection.prototype.getStats = function (cb) {
 
 module.exports = PeerConnection;
 
-},{"sdp-jingle-json":3,"traceablepeerconnection":7,"underscore":9,"util":2,"webrtcsupport":10,"wildemitter":11}]},{},[12])
-(12)
+},{"sdp-jingle-json":3,"traceablepeerconnection":7,"underscore":8,"util":2,"webrtcsupport":9,"wildemitter":10}]},{},[11])
+(11)
 });
 ;
