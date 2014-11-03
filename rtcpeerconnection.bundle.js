@@ -3298,6 +3298,18 @@ function PeerConnection(config, constraints) {
     config = config || {};
     config.iceServers = config.iceServers || [];
 
+    // make sure this only gets enabled in Google Chrome
+    this.enableChromeNativeSimulcast = false;
+    if (constraints && constraints.optional &&
+            webrtc.prefix === 'webkit' &&
+            navigator.appVersion.match(/Chromium\//) === null) {
+        constraints.optional.forEach(function (constraint, idx) {
+            if (constraint.enableChromeNativeSimulcast) {
+                self.enableChromeNativeSimulcast = true;
+            }
+        });
+    }
+
     this.pc = new peerconn(config, constraints);
 
     this.getLocalStreams = this.pc.getLocalStreams.bind(this.pc);
@@ -3518,6 +3530,13 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
     var self = this;
     offer.type = 'offer';
     if (offer.jingle) {
+        if (this.enableChromeNativeSimulcast) {
+            offer.jingle.contents.forEach(function (content) {
+                if (content.name === 'video') {
+                    content.description.googConferenceFlag = true;
+                }
+            });
+        }
         offer.sdp = SJJ.toSessionSDP(offer.jingle, self.config.sdpSessionID);
         self.remoteDescription = offer.jingle;
     }
@@ -3598,32 +3617,31 @@ PeerConnection.prototype._answer = function (constraints, cb) {
         // the old API is used, call handleOffer
         throw new Error('remoteDescription not set');
     }
-    // make sure this only gets enabled in Google Chrome
-    var enableChromeNativeSimulcast = (constraints.enableChromeNativeSimulcast &&
-                                       webrtc.prefix === 'webkit' &&
-                                       navigator.appVersion.match(/Chromium\//) === null) || false;
-    delete constraints.enableChromeNativeSimulcast;
     self.pc.createAnswer(
         function (answer) {
             var sim = [];
-            if (enableChromeNativeSimulcast) {
+            if (self.enableChromeNativeSimulcast) {
                 // native simulcast part 1: add another SSRC
                 answer.jingle = SJJ.toSessionJSON(answer.sdp);
                 if (answer.jingle.contents.length >= 2 && answer.jingle.contents[1].name === 'video') {
-                    var newssrc = JSON.parse(JSON.stringify(answer.jingle.contents[1].description.sources[0]));
-                    newssrc.ssrc = '' + Math.floor(Math.random() * 0xffffffff); // FIXME: look for conflicts
-                    answer.jingle.contents[1].description.sources.push(newssrc);
+                    var hasSimgroup = false;
+                    var groups = answer.jingle.contents[1].description.sourceGroups || [];
+                    if (groups.length === 0) { // FIXME: should check for SIM group exist
+                        var newssrc = JSON.parse(JSON.stringify(answer.jingle.contents[1].description.sources[0]));
+                        newssrc.ssrc = '' + Math.floor(Math.random() * 0xffffffff); // FIXME: look for conflicts
+                        answer.jingle.contents[1].description.sources.push(newssrc);
 
-                    answer.jingle.contents[1].description.sources.forEach(function (source) {
-                        sim.push(source.ssrc);
-                    });
-                    answer.jingle.contents[1].description.sourceGroups = [
-                        {
-                            semantics: 'SIM',
-                            sources: sim
-                        }
-                    ];
-                    answer.sdp = SJJ.toSessionSDP(answer.jingle, self.config.sdpSessionID);
+                        answer.jingle.contents[1].description.sources.forEach(function (source) {
+                            sim.push(source.ssrc);
+                        });
+                        answer.jingle.contents[1].description.sourceGroups = [
+                            {
+                                semantics: 'SIM',
+                                sources: sim
+                            }
+                        ];
+                        answer.sdp = SJJ.toSessionSDP(answer.jingle, self.config.sdpSessionID);
+                    }
                 }
             }
             self.pc.setLocalDescription(answer,
@@ -3638,7 +3656,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                         self.localDescription = jingle;
                         expandedAnswer.jingle = jingle;
                     }
-                    if (enableChromeNativeSimulcast) {
+                    if (self.enableChromeNativeSimulcast) {
                         // native simulcast part 2: 
                         // signal multiple tracks to the receiver
                         if (!expandedAnswer.jingle) {
