@@ -3626,7 +3626,8 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                 if (answer.jingle.contents.length >= 2 && answer.jingle.contents[1].name === 'video') {
                     var hasSimgroup = false;
                     var groups = answer.jingle.contents[1].description.sourceGroups || [];
-                    if (groups.length === 0) { // FIXME: should check for SIM group exist
+                    if (groups.length === 0 && // FIXME: should check for SIM group exist
+                        answer.jingle.contents[1].description.sources.length) {
                         var newssrc = JSON.parse(JSON.stringify(answer.jingle.contents[1].description.sources[0]));
                         newssrc.ssrc = '' + Math.floor(Math.random() * 0xffffffff); // FIXME: look for conflicts
                         answer.jingle.contents[1].description.sources.push(newssrc);
