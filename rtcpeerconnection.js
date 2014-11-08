@@ -14,6 +14,7 @@ function PeerConnection(config, constraints) {
     config.iceServers = config.iceServers || [];
 
     // make sure this only gets enabled in Google Chrome
+    // EXPERIMENTAL FLAG, might get removed without notice
     this.enableChromeNativeSimulcast = false;
     if (constraints && constraints.optional &&
             webrtc.prefix === 'webkit' &&
@@ -25,6 +26,7 @@ function PeerConnection(config, constraints) {
         });
     }
 
+    // EXPERIMENTAL FLAG, might get removed without notice
     this.multiStreamHacks = false;
     if (constraints && constraints.optional) {
         constraints.optional.forEach(function (constraint, idx) {
@@ -261,7 +263,6 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
                 }
             });
         }
-        console.log('multistream hacks?', this.multiStreamHacks);
         if (this.multiStreamHacks) {
             // add a mixed video stream as first stream
             offer.jingle.contents.forEach(function (content) {
