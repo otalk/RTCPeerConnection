@@ -27,11 +27,11 @@ function PeerConnection(config, constraints) {
     }
 
     // EXPERIMENTAL FLAG, might get removed without notice
-    this.multiStreamHacks = false;
+    this.enableMultiStreamHacks = false;
     if (constraints && constraints.optional) {
         constraints.optional.forEach(function (constraint, idx) {
-            if (constraint.multiStreamHacks) {
-                self.multiStreamHacks = true;
+            if (constraint.enableMultiStreamHacks) {
+                self.enableMultiStreamHacks = true;
             }
         });
     }
@@ -263,7 +263,7 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
                 }
             });
         }
-        if (this.multiStreamHacks) {
+        if (this.enableMultiStreamHacks) {
             // add a mixed video stream as first stream
             offer.jingle.contents.forEach(function (content) {
                 if (content.name === 'video') {
