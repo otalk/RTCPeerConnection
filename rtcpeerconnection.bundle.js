@@ -3310,6 +3310,15 @@ function PeerConnection(config, constraints) {
         });
     }
 
+    this.multiStreamHacks = false;
+    if (constraints && constraints.optional) {
+        constraints.optional.forEach(function (constraint, idx) {
+            if (constraint.multiStreamHacks) {
+                self.multiStreamHacks = true;
+            }
+        });
+    }
+
     this.pc = new peerconn(config, constraints);
 
     this.getLocalStreams = this.pc.getLocalStreams.bind(this.pc);
@@ -3534,6 +3543,31 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
             offer.jingle.contents.forEach(function (content) {
                 if (content.name === 'video') {
                     content.description.googConferenceFlag = true;
+                }
+            });
+        }
+        console.log('multistream hacks?', this.multiStreamHacks);
+        if (this.multiStreamHacks) {
+            // add a mixed video stream as first stream
+            offer.jingle.contents.forEach(function (content) {
+                if (content.name === 'video') {
+                    var sources = content.description.sources || [];
+                    if (sources.length === 0 || sources[0].ssrc !== "3735928559") {
+                        sources.unshift({
+                            ssrc: "3735928559", // 0xdeadbeef
+                            parameters: [
+                                {
+                                    key: "cname",
+                                    value: "deadbeef"
+                                },
+                                {
+                                    key: "msid",
+                                    value: "mixyourfecintothis please"
+                                }
+                            ]
+                        });
+                        content.description.sources = sources;
+                    }
                 }
             });
         }
