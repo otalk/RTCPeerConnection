@@ -37,7 +37,7 @@ var pc = new PeerConnection({config servers as usual}, {constraints as to regula
 ### Events
 
 
-Unlike stock Peer Connections this inherits from a generic event emitter. Powered by [WildEmitter](http://github.com/henrikjoreteg/wildemitter) which has a very familiar API if you're used to node.js/jQUery/Backbone but also includes a wildcard handler so you can easily debug events. Just do `emitter.on('*')` to log them out or whatnot.
+Unlike stock Peer Connections this inherits from a generic event emitter. Powered by [WildEmitter](http://github.com/henrikjoreteg/wildemitter) which has a very familiar API if you're used to node.js/jQuery/Backbone but also includes a wildcard handler so you can easily debug events. Just do `emitter.on('*')` to log them out or whatnot.
 
 But instead of doing `pc.onicecandidate = function () {}` on a peer connection you listen for events like this:
 
