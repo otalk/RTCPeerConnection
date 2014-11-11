@@ -3299,6 +3299,7 @@ function PeerConnection(config, constraints) {
     config.iceServers = config.iceServers || [];
 
     // make sure this only gets enabled in Google Chrome
+    // EXPERIMENTAL FLAG, might get removed without notice
     this.enableChromeNativeSimulcast = false;
     if (constraints && constraints.optional &&
             webrtc.prefix === 'webkit' &&
@@ -3306,6 +3307,16 @@ function PeerConnection(config, constraints) {
         constraints.optional.forEach(function (constraint, idx) {
             if (constraint.enableChromeNativeSimulcast) {
                 self.enableChromeNativeSimulcast = true;
+            }
+        });
+    }
+
+    // EXPERIMENTAL FLAG, might get removed without notice
+    this.enableMultiStreamHacks = false;
+    if (constraints && constraints.optional) {
+        constraints.optional.forEach(function (constraint, idx) {
+            if (constraint.enableMultiStreamHacks) {
+                self.enableMultiStreamHacks = true;
             }
         });
     }
@@ -3534,6 +3545,30 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
             offer.jingle.contents.forEach(function (content) {
                 if (content.name === 'video') {
                     content.description.googConferenceFlag = true;
+                }
+            });
+        }
+        if (this.enableMultiStreamHacks) {
+            // add a mixed video stream as first stream
+            offer.jingle.contents.forEach(function (content) {
+                if (content.name === 'video') {
+                    var sources = content.description.sources || [];
+                    if (sources.length === 0 || sources[0].ssrc !== "3735928559") {
+                        sources.unshift({
+                            ssrc: "3735928559", // 0xdeadbeef
+                            parameters: [
+                                {
+                                    key: "cname",
+                                    value: "deadbeef"
+                                },
+                                {
+                                    key: "msid",
+                                    value: "mixyourfecintothis please"
+                                }
+                            ]
+                        });
+                        content.description.sources = sources;
+                    }
                 }
             });
         }

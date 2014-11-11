@@ -5,7 +5,7 @@
   "main": "rtcpeerconnection.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/HenrikJoreteg/RTCPeerConnection"
+    "url": "https://github.com/otalk/RTCPeerConnection"
   },
   "keywords": [
     "browser",
