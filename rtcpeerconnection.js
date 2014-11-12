@@ -1,9 +1,9 @@
-var _ = require('underscore');
 var util = require('util');
 var webrtc = require('webrtcsupport');
 var SJJ = require('sdp-jingle-json');
 var WildEmitter = require('wildemitter');
-var peerconn = require('traceablepeerconnection');
+var TraceablePeerConnection = require('traceablepeerconnection');
+
 
 function PeerConnection(config, constraints) {
     var self = this;
@@ -36,7 +36,7 @@ function PeerConnection(config, constraints) {
         });
     }
 
-    this.pc = new peerconn(config, constraints);
+    this.pc = new TraceablePeerConnection(config, constraints);
 
     this.getLocalStreams = this.pc.getLocalStreams.bind(this.pc);
     this.getRemoteStreams = this.pc.getRemoteStreams.bind(this.pc);
@@ -133,7 +133,9 @@ PeerConnection.prototype.processIce = function (update, cb) {
     var self = this;
 
     if (update.contents) {
-        var contentNames = _.pluck(this.remoteDescription.contents, 'name');
+        var contentNames = this.remoteDescription.contents.map(function (content) {
+            return content.name;
+        });
         var contents = update.contents;
 
         contents.forEach(function (content) {
@@ -213,12 +215,13 @@ PeerConnection.prototype.offer = function (constraints, cb) {
                         sdp: offer.sdp
                     };
                     if (self.config.useJingle) {
-                        jingle = SJJ.toSessionJSON(offer.sdp, self.config.isInitiator ? 'initiator' : 'responder');
+                        jingle = SJJ.toOutgoingJSONOffer(offer.sdp);
+
                         jingle.sid = self.config.sid;
                         self.localDescription = jingle;
 
                         // Save ICE credentials
-                        _.each(jingle.contents, function (content) {
+                        jingle.contents.forEach(function (content) {
                             var transport = content.transport || {};
                             if (transport.ufrag) {
                                 self.config.ice[content.name] = {
@@ -287,7 +290,10 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
                 }
             });
         }
-        offer.sdp = SJJ.toSessionSDP(offer.jingle, self.config.sdpSessionID);
+
+        offer.jingle.sid = self.config.sdpSessionID;
+        offer.sdp = SJJ.toIncomingSDPOffer(offer.jingle);
+
         self.remoteDescription = offer.jingle;
     }
     self.pc.setRemoteDescription(new webrtc.SessionDescription(offer), function () {
@@ -337,7 +343,8 @@ PeerConnection.prototype.handleAnswer = function (answer, cb) {
     cb = cb || function () {};
     var self = this;
     if (answer.jingle) {
-        answer.sdp = SJJ.toSessionSDP(answer.jingle, self.config.sdpSessionID);
+        answer.jingle.sid = self.config.sdpSessionID;
+        answer.sdp = SJJ.toIncomingSDPAnswer(answer.jingle);
         self.remoteDescription = answer.jingle;
     }
     self.pc.setRemoteDescription(
@@ -372,7 +379,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
             var sim = [];
             if (self.enableChromeNativeSimulcast) {
                 // native simulcast part 1: add another SSRC
-                answer.jingle = SJJ.toSessionJSON(answer.sdp);
+                answer.jingle = SJJ.toOutgoingJSONAnswer(answer.sdp);
                 if (answer.jingle.contents.length >= 2 && answer.jingle.contents[1].name === 'video') {
                     var hasSimgroup = false;
                     var groups = answer.jingle.contents[1].description.sourceGroups || [];
@@ -391,7 +398,8 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                                 sources: sim
                             }
                         ];
-                        answer.sdp = SJJ.toSessionSDP(answer.jingle, self.config.sdpSessionID);
+                        answer.jingle.sid = self.config.sdpSessionID;
+                        answer.sdp = SJJ.toOutgoingSDPAnswer(answer.jingle);
                     }
                 }
             }
@@ -402,7 +410,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                         sdp: answer.sdp
                     };
                     if (self.config.useJingle) {
-                        var jingle = SJJ.toSessionJSON(answer.sdp);
+                        var jingle = SJJ.toOutgoingJSONAnswer(answer.sdp);
                         jingle.sid = self.config.sid;
                         self.localDescription = jingle;
                         expandedAnswer.jingle = jingle;
@@ -411,7 +419,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                         // native simulcast part 2: 
                         // signal multiple tracks to the receiver
                         if (!expandedAnswer.jingle) {
-                            expandedAnswer.jingle = SJJ.toSessionJSON(answer.sdp);
+                            expandedAnswer.jingle = SJJ.toOutgoingJSONAnswer(answer.sdp);
                         }
                         expandedAnswer.jingle.contents[1].description.sources.forEach(function (source, idx) {
                             if (sim.indexOf(source.ssrc) != -1) {
@@ -423,7 +431,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                                 });
                             }
                         });
-                        expandedAnswer.sdp = SJJ.toSessionSDP(expandedAnswer.jingle);
+                        expandedAnswer.sdp = SJJ.toOutgoingSDPAnswer(expandedAnswer.jingle);
                     }
                     self.emit('answer', expandedAnswer);
                     cb(null, expandedAnswer);
@@ -458,8 +466,8 @@ PeerConnection.prototype._onIce = function (event) {
                 ice.sdpMid = self.localDescription.contents[ice.sdpMLineIndex].name;
             }
             if (!self.config.ice[ice.sdpMid]) {
-                var jingle = SJJ.toSessionJSON(self.pc.localDescription.sdp, self.config.isInitiator ? 'initiator' : 'responder');
-                _.each(jingle.contents, function (content) {
+                var jingle = SJJ.toOutgoingJSONOffer(self.pc.localDescription.sdp);
+                jingle.contents.forEach(function (content) {
                     var transport = content.transport || {};
                     if (transport.ufrag) {
                         self.config.ice[content.name] = {
@@ -490,7 +498,7 @@ PeerConnection.prototype._onIce = function (event) {
             this.hadLocalRelayCandidate = true;
         }
         if (cand.ip.indexOf(':') != -1) {
-            self.hadLocalIPv6Candidate = true;
+            this.hadLocalIPv6Candidate = true;
         }
 
         this.emit('ice', expandedCandidate);
