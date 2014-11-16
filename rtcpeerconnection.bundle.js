@@ -3817,9 +3817,11 @@ PeerConnection.prototype.getStats = function (cb) {
         this.pc.getStats(
             function (res) {
                 var items = [];
-                res.forEach(function (result) {
-                    items.push(result);
-                });
+                for (var result in res) {
+                    if (typeof res[result] === 'object') {
+                        items.push(res[result]);
+                    }
+                }
                 cb(null, items);
             },
             cb
