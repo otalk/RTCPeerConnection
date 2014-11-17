@@ -39,7 +39,6 @@ function PeerConnection(config, constraints) {
     // EXPERIMENTAL FLAG, might get removed without notice
     // make firefox announce its ssrcs in answers
     this.enableFirefoxSSRCAnnounce = false;
-    console.log(constraints);
     if (webrtc.prefix == 'moz' && constraints && constraints.optional) {
         constraints.optional.forEach(function (constraint, idx) {
             if (constraint.enableFirefoxSSRCAnnounce) {
