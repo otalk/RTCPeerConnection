@@ -279,17 +279,17 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
             offer.jingle.contents.forEach(function (content) {
                 if (content.name === 'video') {
                     var sources = content.description.sources || [];
-                    if (sources.length === 0 || sources[0].ssrc !== "3735928559") {
+                    if (sources.length === 0 || sources[0].ssrc !== '3735928559') {
                         sources.unshift({
-                            ssrc: "3735928559", // 0xdeadbeef
+                            ssrc: '3735928559', // 0xdeadbeef
                             parameters: [
                                 {
-                                    key: "cname",
-                                    value: "deadbeef"
+                                    key: 'cname',
+                                    value: 'deadbeef'
                                 },
                                 {
-                                    key: "msid",
-                                    value: "mixyourfecintothis please"
+                                    key: 'msid',
+                                    value: 'mixyourfecintothis please'
                                 }
                             ]
                         });
@@ -442,8 +442,6 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                         self.getStats(function (err, items) {
                             if (items) {
                                 var ssrcs = {};
-                                ssrcs.cname = Math.random().toString(36).substring(2);
-                                ssrcs.stream = Math.random().toString(36).substring(2);
                                 items.forEach(function (item) {
                                     if (item.id === 'outbound_rtp_audio_0') {
                                         ssrcs.audio = item.ssrc;
@@ -452,6 +450,8 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                                     }
                                 });
                                 if (ssrcs.audio || ssrcs.video) {
+                                    ssrcs.cname = Math.random().toString(36).substring(2);
+                                    ssrcs.stream = self.pc.getLocalStreams()[0].id || Math.random().toString(36).substring(2);
                                     if (!expandedAnswer.jingle) {
                                         expandedAnswer.jingle = SJJ.toSessionJSON(expandedAnswer.sdp);
                                     }
@@ -461,11 +461,11 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                                             ssrc: ssrcs.audio,
                                             parameters: [
                                                 {
-                                                    key: "cname",
+                                                    key: 'cname',
                                                     value: ssrcs.cname
                                                 },
                                                 {
-                                                    key: "msid",
+                                                    key: 'msid',
                                                     value: [ssrcs.stream, ssrcs.audiotrack].join(' ')
                                                 }
                                             ]
@@ -477,11 +477,11 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                                             ssrc: ssrcs.video,
                                             parameters: [
                                                 {
-                                                    key: "cname",
+                                                    key: 'cname',
                                                     value: ssrcs.cname
                                                 },
                                                 {
-                                                    key: "msid",
+                                                    key: 'msid',
                                                     value: [ssrcs.stream, ssrcs.videotrack].join(' ')
                                                 }
                                             ]
