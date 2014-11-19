@@ -443,10 +443,8 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                             if (items) {
                                 var ssrcs = {};
                                 items.forEach(function (item) {
-                                    if (item.id === 'outbound_rtp_audio_0') {
-                                        ssrcs.audio = item.ssrc;
-                                    } else if (item.id == 'outbound_rtp_video_1') {
-                                        ssrcs.video = item.ssrc;
+                                    if (item.type == "outboundrtp" && !item.isRemote) {
+                                        ssrcs[item.id.split('_')[2]] = item.ssrc;
                                     }
                                 });
                                 if (ssrcs.audio || ssrcs.video) {
