@@ -36,6 +36,17 @@ function PeerConnection(config, constraints) {
         });
     }
 
+    // EXPERIMENTAL FLAG, might get removed without notice
+    // make firefox announce its ssrcs in answers
+    this.enableFirefoxSSRCAnnounce = false;
+    if (webrtc.prefix == 'moz' && constraints && constraints.optional) {
+        constraints.optional.forEach(function (constraint, idx) {
+            if (constraint.enableFirefoxSSRCAnnounce) {
+                self.enableFirefoxSSRCAnnounce = true;
+            }
+        });
+    }
+
     this.pc = new peerconn(config, constraints);
 
     this.getLocalStreams = this.pc.getLocalStreams.bind(this.pc);
@@ -268,17 +279,17 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
             offer.jingle.contents.forEach(function (content) {
                 if (content.name === 'video') {
                     var sources = content.description.sources || [];
-                    if (sources.length === 0 || sources[0].ssrc !== "3735928559") {
+                    if (sources.length === 0 || sources[0].ssrc !== '3735928559') {
                         sources.unshift({
-                            ssrc: "3735928559", // 0xdeadbeef
+                            ssrc: '3735928559', // 0xdeadbeef
                             parameters: [
                                 {
-                                    key: "cname",
-                                    value: "deadbeef"
+                                    key: 'cname',
+                                    value: 'deadbeef'
                                 },
                                 {
-                                    key: "msid",
-                                    value: "mixyourfecintothis please"
+                                    key: 'msid',
+                                    value: 'mixyourfecintothis please'
                                 }
                             ]
                         });
@@ -411,7 +422,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                         // native simulcast part 2: 
                         // signal multiple tracks to the receiver
                         if (!expandedAnswer.jingle) {
-                            expandedAnswer.jingle = SJJ.toSessionJSON(answer.sdp);
+                            expandedAnswer.jingle = SJJ.toSessionJSON(expandedAnswer.sdp);
                         }
                         expandedAnswer.jingle.contents[1].description.sources.forEach(function (source, idx) {
                             if (sim.indexOf(source.ssrc) != -1) {
@@ -425,8 +436,67 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                         });
                         expandedAnswer.sdp = SJJ.toSessionSDP(expandedAnswer.jingle);
                     }
-                    self.emit('answer', expandedAnswer);
-                    cb(null, expandedAnswer);
+
+                    if (self.enableFirefoxSSRCAnnounce) {
+                        // generate fake cname and msid lines for firefox
+                        self.getStats(function (err, items) {
+                            if (items) {
+                                var ssrcs = {};
+                                items.forEach(function (item) {
+                                    if (item.type == "outboundrtp" && !item.isRemote) {
+                                        ssrcs[item.id.split('_')[2]] = item.ssrc;
+                                    }
+                                });
+                                if (ssrcs.audio || ssrcs.video) {
+                                    ssrcs.cname = Math.random().toString(36).substring(2);
+                                    ssrcs.stream = self.pc.getLocalStreams()[0].id || Math.random().toString(36).substring(2);
+                                    if (!expandedAnswer.jingle) {
+                                        expandedAnswer.jingle = SJJ.toSessionJSON(expandedAnswer.sdp);
+                                    }
+                                    if (ssrcs.audio && self.pc.getLocalStreams()[0].getAudioTracks().length) {
+                                        ssrcs.audiotrack = self.pc.getLocalStreams()[0].getAudioTracks()[0].id;
+                                        expandedAnswer.jingle.contents[0].description.sources.push({
+                                            ssrc: ssrcs.audio,
+                                            parameters: [
+                                                {
+                                                    key: 'cname',
+                                                    value: ssrcs.cname
+                                                },
+                                                {
+                                                    key: 'msid',
+                                                    value: [ssrcs.stream, ssrcs.audiotrack].join(' ')
+                                                }
+                                            ]
+                                        });
+                                    }
+                                    if (ssrcs.video && self.pc.getLocalStreams()[0].getVideoTracks().length) {
+                                        ssrcs.videotrack = self.pc.getLocalStreams()[0].getVideoTracks()[0].id;
+                                        expandedAnswer.jingle.contents[1].description.sources.push({
+                                            ssrc: ssrcs.video,
+                                            parameters: [
+                                                {
+                                                    key: 'cname',
+                                                    value: ssrcs.cname
+                                                },
+                                                {
+                                                    key: 'msid',
+                                                    value: [ssrcs.stream, ssrcs.videotrack].join(' ')
+                                                }
+                                            ]
+                                        });
+                                    }
+                                    expandedAnswer.sdp = SJJ.toSessionSDP(expandedAnswer.jingle);
+                                }
+                            }
+                            // in case of errors just emit unmodified
+                            self.emit('answer', expandedAnswer);
+                            cb(null, expandedAnswer);
+                        });
+
+                    } else {
+                        self.emit('answer', expandedAnswer);
+                        cb(null, expandedAnswer);
+                    }
                 },
                 function (err) {
                     self.emit('error', err);
