@@ -1664,11 +1664,11 @@ TraceablePeerConnection.prototype.addIceCandidate = function (candidate, success
     this.peerconnection.addIceCandidate(candidate,
         function () {
             //self.trace('addIceCandidateOnSuccess');
-            successCallback();
+            if (successCallback) successCallback();
         },
         function (err) {
             self.trace('addIceCandidateOnFailure', err);
-            failureCallback(err);
+            if (failureCallback) failureCallback(err);
         }
     );
 };
@@ -3411,6 +3411,34 @@ PeerConnection.prototype.addStream = function (stream) {
     this.pc.addStream(stream);
 };
 
+// helper function to check if a remote candidate is a stun/relay
+// candidate or an ipv6 candidate
+PeerConnection.prototype._checkLocalCandidate = function (candidate) {
+    var cand = SJJ.toCandidateJSON(candidate);
+    if (cand.type == 'srflx') {
+        this.hadLocalStunCandidate = true;
+    } else if (cand.type == 'relay') {
+        this.hadLocalRelayCandidate = true;
+    }
+    if (cand.ip.indexOf(':') != -1) {
+        this.hadLocalIPv6Candidate = true;
+    }
+};
+
+// helper function to check if a remote candidate is a stun/relay
+// candidate or an ipv6 candidate
+PeerConnection.prototype._checkRemoteCandidate = function (candidate) {
+    var cand = SJJ.toCandidateJSON(candidate);
+    if (cand.type == 'srflx') {
+        this.hadRemoteStunCandidate = true;
+    } else if (cand.type == 'relay') {
+        this.hadRemoteRelayCandidate = true;
+    }
+    if (cand.ip.indexOf(':') != -1) {
+        this.hadRemoteIPv6Candidate = true;
+    }
+};
+
 
 // Init and add ice candidate object with correct constructor
 PeerConnection.prototype.processIce = function (update, cb) {
@@ -3444,14 +3472,7 @@ PeerConnection.prototype.processIce = function (update, cb) {
                 }
                 */
                 );
-                if (candidate.type === 'srflx') {
-                    self.hadRemoteStunCandidate = true;
-                } else if (candidate.type === 'relay') {
-                    self.hadRemoteRelayCandidate = true;
-                }
-                if (candidate.ip.indexOf(':') != -1) {
-                    self.hadRemoteIPv6Candidate = true;
-                }
+                self._checkRemoteCandidate(iceCandidate);
             });
         });
     } else {
@@ -3461,15 +3482,7 @@ PeerConnection.prototype.processIce = function (update, cb) {
         }
 
         self.pc.addIceCandidate(new webrtc.IceCandidate(update.candidate));
-        var cand = SJJ.toCandidateJSON(update.candidate.candidate);
-        if (cand.type == 'srflx') {
-            self.hadRemoteStunCandidate = true;
-        } else if (cand.type == 'relay') {
-            self.hadRemoteRelayCandidate = true;
-        }
-        if (cand.ip.indexOf(':') != -1) {
-            self.hadRemoteIPv6Candidate = true;
-        }
+        self._checkRemoteCandidate(update.candidate.candidate);
     }
     cb();
 };
@@ -3515,6 +3528,11 @@ PeerConnection.prototype.offer = function (constraints, cb) {
 
                         expandedOffer.jingle = jingle;
                     }
+                    expandedOffer.sdp.split('\r\n').forEach(function (line) {
+                        if (line.indexOf('a=candidate:') === 0) {
+                            self._checkLocalCandidate(line);
+                        }
+                    });
 
                     self.emit('offer', expandedOffer);
                     cb(null, expandedOffer);
@@ -3575,9 +3593,17 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
         offer.sdp = SJJ.toSessionSDP(offer.jingle, self.config.sdpSessionID);
         self.remoteDescription = offer.jingle;
     }
-    self.pc.setRemoteDescription(new webrtc.SessionDescription(offer), function () {
-        cb();
-    }, cb);
+    offer.sdp.split('\r\n').forEach(function (line) {
+        if (line.indexOf('a=candidate:') === 0) {
+            self._checkRemoteCandidate(line);
+        }
+    });
+    self.pc.setRemoteDescription(new webrtc.SessionDescription(offer), 
+        function () {
+            cb();
+        },
+        cb
+    );
 };
 
 // Answer an offer with audio only
@@ -3625,6 +3651,11 @@ PeerConnection.prototype.handleAnswer = function (answer, cb) {
         answer.sdp = SJJ.toSessionSDP(answer.jingle, self.config.sdpSessionID);
         self.remoteDescription = answer.jingle;
     }
+    answer.sdp.split('\r\n').forEach(function (line) {
+        if (line.indexOf('a=candidate:') === 0) {
+            self._checkRemoteCandidate(line);
+        }
+    });
     self.pc.setRemoteDescription(
         new webrtc.SessionDescription(answer),
         function () {
@@ -3710,6 +3741,11 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                         });
                         expandedAnswer.sdp = SJJ.toSessionSDP(expandedAnswer.jingle);
                     }
+                    expandedAnswer.sdp.split('\r\n').forEach(function (line) {
+                        if (line.indexOf('a=candidate:') === 0) {
+                            self._checkLocalCandidate(line);
+                        }
+                    });
                     self.emit('answer', expandedAnswer);
                     cb(null, expandedAnswer);
                 },
@@ -3769,15 +3805,7 @@ PeerConnection.prototype._onIce = function (event) {
                 }]
             };
         }
-        if (cand.type === 'srflx') {
-            this.hadLocalStunCandidate = true;
-        } else if (cand.type == 'relay') {
-            this.hadLocalRelayCandidate = true;
-        }
-        if (cand.ip.indexOf(':') != -1) {
-            self.hadLocalIPv6Candidate = true;
-        }
-
+        this._checkLocalCandidate(ice.candidate);
         this.emit('ice', expandedCandidate);
     } else {
         this.emit('endOfCandidates');
