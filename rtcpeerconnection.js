@@ -281,6 +281,7 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
                 }
             });
         }
+        /*
         if (this.enableMultiStreamHacks) {
             // add a mixed video stream as first stream
             offer.jingle.contents.forEach(function (content) {
@@ -305,6 +306,7 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
                 }
             });
         }
+        */
         offer.sdp = SJJ.toSessionSDP(offer.jingle, self.config.sdpSessionID);
         self.remoteDescription = offer.jingle;
     }
