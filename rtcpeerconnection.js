@@ -281,6 +281,7 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
                 }
             });
         }
+        /*
         if (this.enableMultiStreamHacks) {
             // add a mixed video stream as first stream
             offer.jingle.contents.forEach(function (content) {
@@ -305,6 +306,7 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
                 }
             });
         }
+        */
         offer.sdp = SJJ.toSessionSDP(offer.jingle, self.config.sdpSessionID);
         self.remoteDescription = offer.jingle;
     }
@@ -401,27 +403,40 @@ PeerConnection.prototype._answer = function (constraints, cb) {
     self.pc.createAnswer(
         function (answer) {
             var sim = [];
+            var rtx = [];
             if (self.enableChromeNativeSimulcast) {
                 // native simulcast part 1: add another SSRC
                 answer.jingle = SJJ.toSessionJSON(answer.sdp);
                 if (answer.jingle.contents.length >= 2 && answer.jingle.contents[1].name === 'video') {
                     var hasSimgroup = false;
                     var groups = answer.jingle.contents[1].description.sourceGroups || [];
-                    if (groups.length === 0 && // FIXME: should check for SIM group exist
+                    var hasSim = false;
+                    groups.forEach(function (group) {
+                        if (group.semantics == 'SIM') hasSim = true;
+                    });
+                    if (!hasSim &&
                         answer.jingle.contents[1].description.sources.length) {
                         var newssrc = JSON.parse(JSON.stringify(answer.jingle.contents[1].description.sources[0]));
                         newssrc.ssrc = '' + Math.floor(Math.random() * 0xffffffff); // FIXME: look for conflicts
                         answer.jingle.contents[1].description.sources.push(newssrc);
 
-                        answer.jingle.contents[1].description.sources.forEach(function (source) {
-                            sim.push(source.ssrc);
+                        sim.push(answer.jingle.contents[1].description.sources[0].ssrc);
+                        sim.push(newssrc.ssrc);
+                        groups.push({
+                            semantics: 'SIM',
+                            sources: sim
                         });
-                        answer.jingle.contents[1].description.sourceGroups = [
-                            {
-                                semantics: 'SIM',
-                                sources: sim
-                            }
-                        ];
+
+                        // also create an RTX one for the SIM one
+                        var rtxssrc = JSON.parse(JSON.stringify(newssrc));
+                        rtxssrc.ssrc = '' + Math.floor(Math.random() * 0xffffffff); // FIXME: look for conflicts
+                        answer.jingle.contents[1].description.sources.push(rtxssrc);
+                        groups.push({
+                            semantics: 'FID',
+                            sources: [newssrc.ssrc, rtxssrc.ssrc]
+                        });
+
+                        answer.jingle.contents[1].description.sourceGroups = groups;
                         answer.sdp = SJJ.toSessionSDP(answer.jingle, self.config.sdpSessionID);
                     }
                 }
@@ -441,18 +456,20 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                     if (self.enableChromeNativeSimulcast) {
                         // native simulcast part 2: 
                         // signal multiple tracks to the receiver
+                        // for anything in the SIM group
                         if (!expandedAnswer.jingle) {
                             expandedAnswer.jingle = SJJ.toSessionJSON(answer.sdp);
                         }
+                        var groups = expandedAnswer.jingle.contents[1].description.sourceGroups || [];
                         expandedAnswer.jingle.contents[1].description.sources.forEach(function (source, idx) {
-                            if (sim.indexOf(source.ssrc) != -1) {
-                                source.parameters = source.parameters.map(function (parameter) {
-                                    if (parameter.key === 'msid') {
-                                        parameter.value += '-' + idx;
-                                    }
-                                    return parameter;
-                                });
-                            }
+                            // the floor idx/2 is a hack that relies on a particular order
+                            // of groups, alternating between sim and rtx
+                            source.parameters = source.parameters.map(function (parameter) {
+                                if (parameter.key === 'msid') {
+                                    parameter.value += '-' + Math.floor(idx / 2);
+                                }
+                                return parameter;
+                            });
                         });
                         expandedAnswer.sdp = SJJ.toSessionSDP(expandedAnswer.jingle);
                     }
