@@ -3455,22 +3455,20 @@ PeerConnection.prototype.processIce = function (update, cb) {
             var mline = contentNames.indexOf(content.name);
             var mid = content.name;
 
-            candidates.forEach(function (candidate) {
+            candidates.forEach(
+                function (candidate) {
                 var iceCandidate = SJJ.toCandidateSDP(candidate) + '\r\n';
-                self.pc.addIceCandidate(new webrtc.IceCandidate({
-                    candidate: iceCandidate,
-                    sdpMLineIndex: mline,
-                    sdpMid: mid
-                })
-                /* not yet, breaks Chrome M32 */
-                /*
-                , function () {
-                    // well, this success callback is pretty meaningless
-                },
-                function (err) {
-                    self.emit('error', err);
-                }
-                */
+                self.pc.addIceCandidate(
+                    new webrtc.IceCandidate({
+                        candidate: iceCandidate,
+                        sdpMLineIndex: mline,
+                        sdpMid: mid
+                    }), function () {
+                        // well, this success callback is pretty meaningless
+                    },
+                    function (err) {
+                        self.emit('error', err);
+                    }
                 );
                 self._checkRemoteCandidate(iceCandidate);
             });
@@ -3481,7 +3479,15 @@ PeerConnection.prototype.processIce = function (update, cb) {
             update.candidate.candidate = 'a=' + update.candidate.candidate;
         }
 
-        self.pc.addIceCandidate(new webrtc.IceCandidate(update.candidate));
+        self.pc.addIceCandidate(
+            new webrtc.IceCandidate(update.candidate),
+            function () {
+                // well, this success callback is pretty meaningless
+            },
+            function (err) {
+                self.emit('error', err);
+            }
+        );
         self._checkRemoteCandidate(update.candidate.candidate);
     }
     cb();
