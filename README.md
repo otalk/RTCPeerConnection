@@ -56,22 +56,22 @@ pc.on('endOfCandidates', function () {
 });
 
 // remote stream added
-pc.on('streamAdded', function (stream) {
-    // do something with the remote stream
+pc.on('addStream', function (event) {
+    // do something with event.stream
     // probably attach it to a <video> element
     // and play it.
 });
 
 // remote stream removed
-pc.on('streamRemoved', function (stream) {
+pc.on('removeStream', function (event) {
     // remote stream removed
     // now you could hide/disable removed video
 });
 
 // you can chose to listen for events for 
 // offers and answers instead, if you prefer 
-pc.on('answer', function (answer) { ... });
-pc.on('offer', function (offer) { ... });
+pc.on('answer', function (err, answer) { ... });
+pc.on('offer', function (err, offer) { ... });
 
 // on peer connection close
 pc.on('close', function () { ... });
@@ -93,8 +93,8 @@ var connection = new RealTimeConnection(); // could be socket.io or whatever
 
 
 // create an offer
-pc.offer(function (offer) {
-    connection.send('offer', offer)
+pc.offer(function (err, offer) {
+    if (!err) connection.send('offer', offer)
 });
 
 // you can also optionally pass in constraints
