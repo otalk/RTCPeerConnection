@@ -40,8 +40,6 @@ function PeerConnection(config, constraints) {
 
     this.getLocalStreams = this.pc.getLocalStreams.bind(this.pc);
     this.getRemoteStreams = this.pc.getRemoteStreams.bind(this.pc);
-    //this.addStream = this.pc.addStream.bind(this.pc);
-    this.removeStream = this.pc.removeStream.bind(this.pc);
 
     // proxy events 
     this.pc.on('*', function () {
@@ -124,6 +122,12 @@ Object.defineProperty(PeerConnection.prototype, 'iceConnectionState', {
 PeerConnection.prototype.addStream = function (stream) {
     this.localStream = stream;
     this.pc.addStream(stream);
+};
+
+// Remove a stream from the peer connection object
+PeerConnection.prototype.removeStream = function (stream) {
+    this.localStream = null;
+    this.pc.removeStream(stream);
 };
 
 // helper function to check if a remote candidate is a stun/relay
