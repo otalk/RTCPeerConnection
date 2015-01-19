@@ -50,12 +50,12 @@ function PeerConnection(config, constraints) {
 
     // proxy some events directly
     this.pc.onremovestream = this.emit.bind(this, 'removeStream');
+    this.pc.onaddstream = this.emit.bind(this, 'addStream');
     this.pc.onnegotiationneeded = this.emit.bind(this, 'negotiationNeeded');
     this.pc.oniceconnectionstatechange = this.emit.bind(this, 'iceConnectionStateChange');
     this.pc.onsignalingstatechange = this.emit.bind(this, 'signalingStateChange');
 
-    // handle incoming ice and data channel events
-    this.pc.onaddstream = this._onAddStream.bind(this);
+    // handle ice candidate and data channel events
     this.pc.onicecandidate = this._onIce.bind(this);
     this.pc.ondatachannel = this._onDataChannel.bind(this);
 
@@ -65,9 +65,6 @@ function PeerConnection(config, constraints) {
     this.remoteDescription = {
         contents: []
     };
-
-    this.localStream = null;
-    this.remoteStreams = [];
 
     this.config = {
         debug: false,
@@ -556,12 +553,6 @@ PeerConnection.prototype._onDataChannel = function (event) {
     this._remoteDataChannels.push(channel);
 
     this.emit('addChannel', channel);
-};
-
-// Internal handling of adding stream
-PeerConnection.prototype._onAddStream = function (event) {
-    this.remoteStreams.push(event.stream);
-    this.emit('addStream', event);
 };
 
 // Create a data channel spec reference:
