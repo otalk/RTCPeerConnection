@@ -422,7 +422,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                 // native simulcast part 1: add another SSRC
                 answer.jingle = SJJ.toSessionJSON(answer.sdp, {
                     role: self._role,
-                    direction: 'outoing'
+                    direction: 'outgoing'
                 });
                 if (answer.jingle.contents.length >= 2 && answer.jingle.contents[1].name === 'video') {
                     var hasSimgroup = false;

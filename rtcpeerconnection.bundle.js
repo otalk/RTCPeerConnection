@@ -762,128 +762,19 @@ function hasOwnProperty(obj, prop) {
 }
 
 },{"_shims":1}],3:[function(require,module,exports){
-var toSDP = require('./lib/tosdp');
-var toJSON = require('./lib/tojson');
+var tosdp = require('./lib/tosdp');
+var tojson = require('./lib/tojson');
 
 
-// Converstion from JSON to SDP
+exports.toSessionSDP = tosdp.toSessionSDP;
+exports.toMediaSDP = tosdp.toMediaSDP;
+exports.toCandidateSDP = tosdp.toCandidateSDP;
 
-exports.toIncomingSDPOffer = function (session) {
-    return toSDP.toSessionSDP(session, {
-        role: 'responder',
-        direction: 'incoming'
-    });
-};
-exports.toOutgoingSDPOffer = function (session) {
-    return toSDP.toSessionSDP(session, {
-        role: 'initiator',
-        direction: 'outgoing'
-    });
-};
-exports.toIncomingSDPAnswer = function (session) {
-    return toSDP.toSessionSDP(session, {
-        role: 'initiator',
-        direction: 'incoming'
-    });
-};
-exports.toOutgoingSDPAnswer = function (session) {
-    return toSDP.toSessionSDP(session, {
-        role: 'responder',
-        direction: 'outgoing'
-    });
-};
-exports.toIncomingMediaSDPOffer = function (media) {
-    return toSDP.toMediaSDP(media, {
-        role: 'responder',
-        direction: 'incoming'
-    });
-};
-exports.toOutgoingMediaSDPOffer = function (media) {
-    return toSDP.toMediaSDP(media, {
-        role: 'initiator',
-        direction: 'outgoing'
-    });
-};
-exports.toIncomingMediaSDPAnswer = function (media) {
-    return toSDP.toMediaSDP(media, {
-        role: 'initiator',
-        direction: 'incoming'
-    });
-};
-exports.toOutgoingMediaSDPAnswer = function (media) {
-    return toSDP.toMediaSDP(media, {
-        role: 'responder',
-        direction: 'outgoing'
-    });
-};
-exports.toCandidateSDP = toSDP.toCandidateSDP;
-exports.toMediaSDP = toSDP.toMediaSDP;
-exports.toSessionSDP = toSDP.toSessionSDP;
+exports.toSessionJSON = tojson.toSessionJSON;
+exports.toMediaJSON = tojson.toMediaJSON;
+exports.toCandidateJSON = tojson.toCandidateJSON;
 
-
-// Conversion from SDP to JSON
-
-exports.toIncomingJSONOffer = function (sdp, creators) {
-    return toJSON.toSessionJSON(sdp, {
-        role: 'responder',
-        direction: 'incoming',
-        creators: creators
-    });
-};
-exports.toOutgoingJSONOffer = function (sdp, creators) {
-    return toJSON.toSessionJSON(sdp, {
-        role: 'initiator',
-        direction: 'outgoing',
-        creators: creators
-    });
-};
-exports.toIncomingJSONAnswer = function (sdp, creators) {
-    return toJSON.toSessionJSON(sdp, {
-        role: 'initiator',
-        direction: 'incoming',
-        creators: creators
-    });
-};
-exports.toOutgoingJSONAnswer = function (sdp, creators) {
-    return toJSON.toSessionJSON(sdp, {
-        role: 'responder',
-        direction: 'outgoing',
-        creators: creators
-    });
-};
-exports.toIncomingMediaJSONOffer = function (sdp, creator) {
-    return toJSON.toMediaJSON(sdp, {
-        role: 'initiator',
-        direction: 'incoming',
-        creator: creator
-    });
-};
-exports.toOutgoingMediaJSONOffer = function (sdp, creator) {
-    return toJSON.toMediaJSON(sdp, {
-        role: 'responder',
-        direction: 'outgoing',
-        creator: creator
-    });
-};
-exports.toIncomingMediaJSONAnswer = function (sdp, creator) {
-    return toJSON.toMediaJSON(sdp, {
-        role: 'initiator',
-        direction: 'incoming',
-        creator: creator
-    });
-};
-exports.toOutgoingMediaJSONAnswer = function (sdp, creator) {
-    return toJSON.toMediaJSON(sdp, {
-        role: 'responder',
-        direction: 'outgoing',
-        creator: creator
-    });
-};
-exports.toCandidateJSON = toJSON.toCandidateJSON;
-exports.toMediaJSON = toJSON.toMediaJSON;
-exports.toSessionJSON = toJSON.toSessionJSON;
-
-},{"./lib/tojson":6,"./lib/tosdp":7}],4:[function(require,module,exports){
+},{"./lib/tojson":5,"./lib/tosdp":6}],4:[function(require,module,exports){
 exports.lines = function (sdp) {
     return sdp.split('\r\n').filter(function (line) {
         return line.length > 0;
@@ -1145,73 +1036,17 @@ exports.bandwidth = function (line) {
 };
 
 },{}],5:[function(require,module,exports){
-module.exports = {
-    initiator: {
-        incoming: {
-            initiator: 'recvonly',
-            responder: 'sendonly',
-            both: 'sendrecv',
-            none: 'inactive',
-            recvonly: 'initiator',
-            sendonly: 'responder',
-            sendrecv: 'both',
-            inactive: 'none'
-        },
-        outgoing: {
-            initiator: 'sendonly',
-            responder: 'recvonly',
-            both: 'sendrecv',
-            none: 'inactive',
-            recvonly: 'responder',
-            sendonly: 'initiator',
-            sendrecv: 'both',
-            inactive: 'none'
-        }
-    },
-    responder: {
-        incoming: {
-            initiator: 'sendonly',
-            responder: 'recvonly',
-            both: 'sendrecv',
-            none: 'inactive',
-            recvonly: 'responder',
-            sendonly: 'initiator',
-            sendrecv: 'both',
-            inactive: 'none'
-        },
-        outgoing: {
-            initiator: 'recvonly',
-            responder: 'sendonly',
-            both: 'sendrecv',
-            none: 'inactive',
-            recvonly: 'initiator',
-            sendonly: 'responder',
-            sendrecv: 'both',
-            inactive: 'none'
-        }
-    }
-};
-
-},{}],6:[function(require,module,exports){
-var SENDERS = require('./senders');
 var parsers = require('./parsers');
 var idCounter = Math.random();
-
 
 exports._setIdCounter = function (counter) {
     idCounter = counter;
 };
 
-exports.toSessionJSON = function (sdp, opts) {
-    var i;
-    var creators = opts.creators || [];
-    var role = opts.role || 'initiator';
-    var direction = opts.direction || 'outgoing';
-
-
+exports.toSessionJSON = function (sdp, creator) {
     // Divide the SDP into session and media sections.
     var media = sdp.split('\r\nm=');
-    for (i = 1; i < media.length; i++) {
+    for (var i = 1; i < media.length; i++) {
         media[i] = 'm=' + media[i];
         if (i !== media.length - 1) {
             media[i] += '\r\n';
@@ -1222,13 +1057,9 @@ exports.toSessionJSON = function (sdp, opts) {
     var parsed = {};
 
     var contents = [];
-    for (i = 0; i < media.length; i++) {
-        contents.push(exports.toMediaJSON(media[i], session, {
-            role: role,
-            direction: direction,
-            creator: creators[i] || 'initiator'
-        }));
-    }
+    media.forEach(function (m) {
+        contents.push(exports.toMediaJSON(m, session, creator));
+    });
     parsed.contents = contents;
 
     var groupLines = parsers.findLines('a=group:', sessionLines);
@@ -1239,11 +1070,7 @@ exports.toSessionJSON = function (sdp, opts) {
     return parsed;
 };
 
-exports.toMediaJSON = function (media, session, opts) {
-    var creator = opts.creator || 'initiator';
-    var role = opts.role || 'initiator';
-    var direction = opts.direction || 'outgoing';
-
+exports.toMediaJSON = function (media, session, creator) {
     var lines = parsers.lines(media);
     var sessionLines = parsers.lines(session);
     var mline = parsers.mline(lines[0]);
@@ -1285,9 +1112,9 @@ exports.toMediaJSON = function (media, session, opts) {
     if (parsers.findLine('a=sendrecv', lines, sessionLines)) {
         content.senders = 'both';
     } else if (parsers.findLine('a=sendonly', lines, sessionLines)) {
-        content.senders = SENDERS[role][direction].sendonly;
+        content.senders = 'initiator';
     } else if (parsers.findLine('a=recvonly', lines, sessionLines)) {
-        content.senders = SENDERS[role][direction].recvonly;
+        content.senders = 'responder';
     } else if (parsers.findLine('a=inactive', lines, sessionLines)) {
         content.senders = 'none';
     }
@@ -1339,7 +1166,13 @@ exports.toMediaJSON = function (media, session, opts) {
         extLines.forEach(function (line) {
             var ext = parsers.extmap(line);
 
-            ext.senders = SENDERS[role][direction][ext.senders];
+            var senders = {
+                sendonly: 'responder',
+                recvonly: 'initiator',
+                sendrecv: 'both',
+                inactive: 'none'
+            };
+            ext.senders = senders[ext.senders];
 
             desc.headerExtensions.push(ext);
         });
@@ -1396,19 +1229,23 @@ exports.toCandidateJSON = function (line) {
     return candidate;
 };
 
-},{"./parsers":4,"./senders":5}],7:[function(require,module,exports){
-var SENDERS = require('./senders');
+},{"./parsers":4}],6:[function(require,module,exports){
+var senders = {
+    'initiator': 'sendonly',
+    'responder': 'recvonly',
+    'both': 'sendrecv',
+    'none': 'inactive',
+    'sendonly': 'initator',
+    'recvonly': 'responder',
+    'sendrecv': 'both',
+    'inactive': 'none'
+};
 
 
-exports.toSessionSDP = function (session, opts) {
-    var role = opts.role || 'initiator';
-    var direction = opts.direction || 'outgoing';
-    var sid = opts.sid || session.sid || Date.now();
-    var time = opts.time || Date.now();
-
+exports.toSessionSDP = function (session, sid, time) {
     var sdp = [
         'v=0',
-        'o=- ' + sid + ' ' + time + ' IN IP4 0.0.0.0',
+        'o=- ' + (sid || session.sid || Date.now()) + ' ' + (time || Date.now()) + ' IN IP4 0.0.0.0',
         's=-',
         't=0 0'
     ];
@@ -1420,17 +1257,14 @@ exports.toSessionSDP = function (session, opts) {
 
     var contents = session.contents || [];
     contents.forEach(function (content) {
-        sdp.push(exports.toMediaSDP(content, opts));
+        sdp.push(exports.toMediaSDP(content));
     });
 
     return sdp.join('\r\n') + '\r\n';
 };
 
-exports.toMediaSDP = function (content, opts) {
+exports.toMediaSDP = function (content) {
     var sdp = [];
-
-    var role = opts.role || 'initiator';
-    var direction = opts.direction || 'outgoing';
 
     var desc = content.description;
     var transport = content.transport;
@@ -1495,7 +1329,7 @@ exports.toMediaSDP = function (content, opts) {
     }
 
     if (desc.descType == 'rtp') {
-        sdp.push('a=' + (SENDERS[role][direction][content.senders] || 'sendrecv'));
+        sdp.push('a=' + (senders[content.senders] || 'sendrecv'));
     }
     sdp.push('a=mid:' + content.name);
 
@@ -1551,7 +1385,7 @@ exports.toMediaSDP = function (content, opts) {
 
     var hdrExts = desc.headerExtensions || [];
     hdrExts.forEach(function (hdr) {
-        sdp.push('a=extmap:' + hdr.id + (hdr.senders ? '/' + SENDERS[role][direction][hdr.senders] : '') + ' ' + hdr.uri);
+        sdp.push('a=extmap:' + hdr.id + (hdr.senders ? '/' + senders[hdr.senders] : '') + ' ' + hdr.uri);
     });
 
     var ssrcGroups = desc.sourceGroups || [];
@@ -1612,7 +1446,7 @@ exports.toCandidateSDP = function (candidate) {
     return 'a=candidate:' + sdp.join(' ');
 };
 
-},{"./senders":5}],8:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 // based on https://github.com/ESTOS/strophe.jingle/
 // adds wildemitter support
 var util = require('util');
@@ -1849,7 +1683,7 @@ TraceablePeerConnection.prototype.getStats = function (callback, errback) {
 
 module.exports = TraceablePeerConnection;
 
-},{"util":2,"webrtcsupport":10,"wildemitter":11}],9:[function(require,module,exports){
+},{"util":2,"webrtcsupport":9,"wildemitter":10}],8:[function(require,module,exports){
 //     Underscore.js 1.7.0
 //     http://underscorejs.org
 //     (c) 2009-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -3266,7 +3100,7 @@ module.exports = TraceablePeerConnection;
   }
 }.call(this));
 
-},{}],10:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 // created by @HenrikJoreteg
 var prefix;
 var isChrome = false;
@@ -3307,7 +3141,7 @@ module.exports = {
     MediaStream: MediaStream
 };
 
-},{}],11:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 /*
 WildEmitter.js is a slim little event emitter by @henrikjoreteg largely based 
 on @visionmedia's Emitter from UI Kit.
@@ -3448,7 +3282,7 @@ WildEmitter.prototype.getWildcardCallbacks = function (eventName) {
     return result;
 };
 
-},{}],12:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 var _ = require('underscore');
 var util = require('util');
 var webrtc = require('webrtcsupport');
@@ -3501,12 +3335,12 @@ function PeerConnection(config, constraints) {
 
     // proxy some events directly
     this.pc.onremovestream = this.emit.bind(this, 'removeStream');
+    this.pc.onaddstream = this.emit.bind(this, 'addStream');
     this.pc.onnegotiationneeded = this.emit.bind(this, 'negotiationNeeded');
     this.pc.oniceconnectionstatechange = this.emit.bind(this, 'iceConnectionStateChange');
     this.pc.onsignalingstatechange = this.emit.bind(this, 'signalingStateChange');
 
-    // handle incoming ice and data channel events
-    this.pc.onaddstream = this._onAddStream.bind(this);
+    // handle ice candidate and data channel events
     this.pc.onicecandidate = this._onIce.bind(this);
     this.pc.ondatachannel = this._onDataChannel.bind(this);
 
@@ -3516,9 +3350,6 @@ function PeerConnection(config, constraints) {
     this.remoteDescription = {
         contents: []
     };
-
-    this.localStream = null;
-    this.remoteStreams = [];
 
     this.config = {
         debug: false,
@@ -3876,7 +3707,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                 // native simulcast part 1: add another SSRC
                 answer.jingle = SJJ.toSessionJSON(answer.sdp, {
                     role: self._role,
-                    direction: 'outoing'
+                    direction: 'outgoing'
                 });
                 if (answer.jingle.contents.length >= 2 && answer.jingle.contents[1].name === 'video') {
                     var hasSimgroup = false;
@@ -4042,12 +3873,6 @@ PeerConnection.prototype._onDataChannel = function (event) {
     this.emit('addChannel', channel);
 };
 
-// Internal handling of adding stream
-PeerConnection.prototype._onAddStream = function (event) {
-    this.remoteStreams.push(event.stream);
-    this.emit('addStream', event);
-};
-
 // Create a data channel spec reference:
 // http://dev.w3.org/2011/webrtc/editor/webrtc.html#idl-def-RTCDataChannelInit
 PeerConnection.prototype.createDataChannel = function (name, opts) {
@@ -4094,7 +3919,7 @@ PeerConnection.prototype.getStats = function (cb) {
 
 module.exports = PeerConnection;
 
-},{"sdp-jingle-json":3,"traceablepeerconnection":8,"underscore":9,"util":2,"webrtcsupport":10,"wildemitter":11}]},{},[12])
-(12)
+},{"sdp-jingle-json":3,"traceablepeerconnection":7,"underscore":8,"util":2,"webrtcsupport":9,"wildemitter":10}]},{},[11])
+(11)
 });
 ;
