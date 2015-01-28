@@ -83,6 +83,8 @@ function PeerConnection(config, constraints) {
         this.config[item] = config[item];
     }
 
+    this._role = this.isInitiator ? 'initiator' : 'responder';
+
     if (this.config.debug) {
         this.on('*', function (eventName, event) {
             var logger = config.logger || console;
@@ -230,7 +232,10 @@ PeerConnection.prototype.offer = function (constraints, cb) {
                         sdp: offer.sdp
                     };
                     if (self.config.useJingle) {
-                        jingle = SJJ.toSessionJSON(offer.sdp, self.config.isInitiator ? 'initiator' : 'responder');
+                        jingle = SJJ.toSessionJSON(offer.sdp, {
+                            role: self._role,
+                            direction: 'outgoing'
+                        });
                         jingle.sid = self.config.sid;
                         self.localDescription = jingle;
 
@@ -311,7 +316,11 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
             });
         }
         */
-        offer.sdp = SJJ.toSessionSDP(offer.jingle, self.config.sdpSessionID);
+        offer.sdp = SJJ.toSessionSDP(offer.jingle, {
+            sid: self.config.sdpSessionID,
+            role: self._role,
+            direction: 'incoming'
+        });
         self.remoteDescription = offer.jingle;
     }
     offer.sdp.split('\r\n').forEach(function (line) {
@@ -369,7 +378,11 @@ PeerConnection.prototype.handleAnswer = function (answer, cb) {
     cb = cb || function () {};
     var self = this;
     if (answer.jingle) {
-        answer.sdp = SJJ.toSessionSDP(answer.jingle, self.config.sdpSessionID);
+        answer.sdp = SJJ.toSessionSDP(answer.jingle, {
+            sid: self.config.sdpSessionID,
+            role: self._role,
+            direction: 'incoming'
+        });
         self.remoteDescription = answer.jingle;
     }
     answer.sdp.split('\r\n').forEach(function (line) {
@@ -410,7 +423,10 @@ PeerConnection.prototype._answer = function (constraints, cb) {
             var rtx = [];
             if (self.enableChromeNativeSimulcast) {
                 // native simulcast part 1: add another SSRC
-                answer.jingle = SJJ.toSessionJSON(answer.sdp);
+                answer.jingle = SJJ.toSessionJSON(answer.sdp, {
+                    role: self._role,
+                    direction: 'outoing'
+                });
                 if (answer.jingle.contents.length >= 2 && answer.jingle.contents[1].name === 'video') {
                     var hasSimgroup = false;
                     var groups = answer.jingle.contents[1].description.sourceGroups || [];
@@ -441,7 +457,11 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                         });
 
                         answer.jingle.contents[1].description.sourceGroups = groups;
-                        answer.sdp = SJJ.toSessionSDP(answer.jingle, self.config.sdpSessionID);
+                        answer.sdp = SJJ.toSessionSDP(answer.jingle, {
+                            sid: self.config.sdpSessionID,
+                            role: self._role,
+                            direction: 'outgoing'
+                        });
                     }
                 }
             }
@@ -452,7 +472,10 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                         sdp: answer.sdp
                     };
                     if (self.config.useJingle) {
-                        var jingle = SJJ.toSessionJSON(answer.sdp);
+                        var jingle = SJJ.toSessionJSON(answer.sdp, {
+                            role: self._role,
+                            direction: 'outgoing'
+                        });
                         jingle.sid = self.config.sid;
                         self.localDescription = jingle;
                         expandedAnswer.jingle = jingle;
@@ -462,7 +485,10 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                         // signal multiple tracks to the receiver
                         // for anything in the SIM group
                         if (!expandedAnswer.jingle) {
-                            expandedAnswer.jingle = SJJ.toSessionJSON(answer.sdp);
+                            expandedAnswer.jingle = SJJ.toSessionJSON(answer.sdp, {
+                                role: self._role,
+                                direction: 'outgoing'
+                            });
                         }
                         var groups = expandedAnswer.jingle.contents[1].description.sourceGroups || [];
                         expandedAnswer.jingle.contents[1].description.sources.forEach(function (source, idx) {
@@ -475,7 +501,11 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                                 return parameter;
                             });
                         });
-                        expandedAnswer.sdp = SJJ.toSessionSDP(expandedAnswer.jingle);
+                        expandedAnswer.sdp = SJJ.toSessionSDP(expandedAnswer.jingle, {
+                            sid: self.sdpSessionID,
+                            role: self._role,
+                            direction: 'outgoing'
+                        });
                     }
                     expandedAnswer.sdp.split('\r\n').forEach(function (line) {
                         if (line.indexOf('a=candidate:') === 0) {
@@ -515,7 +545,10 @@ PeerConnection.prototype._onIce = function (event) {
                 ice.sdpMid = self.localDescription.contents[ice.sdpMLineIndex].name;
             }
             if (!self.config.ice[ice.sdpMid]) {
-                var jingle = SJJ.toSessionJSON(self.pc.localDescription.sdp, self.config.isInitiator ? 'initiator' : 'responder');
+                var jingle = SJJ.toSessionJSON(self.pc.localDescription.sdp, {
+                    role: self._role,
+                    direction: 'incoming'
+                });
                 _.each(jingle.contents, function (content) {
                     var transport = content.transport || {};
                     if (transport.ufrag) {
@@ -529,7 +562,7 @@ PeerConnection.prototype._onIce = function (event) {
             expandedCandidate.jingle = {
                 contents: [{
                     name: ice.sdpMid,
-                    creator: self.config.isInitiator ? 'initiator' : 'responder',
+                    creator: self._role,
                     transport: {
                         transType: 'iceUdp',
                         ufrag: self.config.ice[ice.sdpMid].ufrag,
