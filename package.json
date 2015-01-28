@@ -19,12 +19,12 @@
     "wildemitter": "1.x",
     "webrtcsupport": "^1.0.0",
     "traceablepeerconnection": "^1.0.0",
-    "sdp-jingle-json": "1.x",
+    "sdp-jingle-json": "2.x",
     "underscore": "1.x"
   },
   "devDependencies": {
     "browserify": "2.x",
-    "precommit-hook": "0.3.x",
+    "precommit-hook": "1.x",
     "tape": "2.x"
   },
   "testling": {
