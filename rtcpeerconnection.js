@@ -80,8 +80,6 @@ function PeerConnection(config, constraints) {
         this.config[item] = config[item];
     }
 
-    this._role = this.isInitiator ? 'initiator' : 'responder';
-
     if (this.config.debug) {
         this.on('*', function (eventName, event) {
             var logger = config.logger || console;
@@ -118,6 +116,10 @@ Object.defineProperty(PeerConnection.prototype, 'iceConnectionState', {
         return this.pc.iceConnectionState;
     }
 });
+
+PeerConnection.prototype._role = function () {
+    return this.isInitiator ? 'initiator' : 'responder';
+};
 
 // Add a stream to the peer connection object
 PeerConnection.prototype.addStream = function (stream) {
@@ -230,7 +232,7 @@ PeerConnection.prototype.offer = function (constraints, cb) {
                     };
                     if (self.config.useJingle) {
                         jingle = SJJ.toSessionJSON(offer.sdp, {
-                            role: self._role,
+                            role: self._role(),
                             direction: 'outgoing'
                         });
                         jingle.sid = self.config.sid;
@@ -315,7 +317,7 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
         */
         offer.sdp = SJJ.toSessionSDP(offer.jingle, {
             sid: self.config.sdpSessionID,
-            role: self._role,
+            role: self._role(),
             direction: 'incoming'
         });
         self.remoteDescription = offer.jingle;
@@ -377,7 +379,7 @@ PeerConnection.prototype.handleAnswer = function (answer, cb) {
     if (answer.jingle) {
         answer.sdp = SJJ.toSessionSDP(answer.jingle, {
             sid: self.config.sdpSessionID,
-            role: self._role,
+            role: self._role(),
             direction: 'incoming'
         });
         self.remoteDescription = answer.jingle;
@@ -421,7 +423,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
             if (self.enableChromeNativeSimulcast) {
                 // native simulcast part 1: add another SSRC
                 answer.jingle = SJJ.toSessionJSON(answer.sdp, {
-                    role: self._role,
+                    role: self._role(),
                     direction: 'outgoing'
                 });
                 if (answer.jingle.contents.length >= 2 && answer.jingle.contents[1].name === 'video') {
@@ -456,7 +458,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                         answer.jingle.contents[1].description.sourceGroups = groups;
                         answer.sdp = SJJ.toSessionSDP(answer.jingle, {
                             sid: self.config.sdpSessionID,
-                            role: self._role,
+                            role: self._role(),
                             direction: 'outgoing'
                         });
                     }
@@ -470,7 +472,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                     };
                     if (self.config.useJingle) {
                         var jingle = SJJ.toSessionJSON(answer.sdp, {
-                            role: self._role,
+                            role: self._role(),
                             direction: 'outgoing'
                         });
                         jingle.sid = self.config.sid;
@@ -483,7 +485,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                         // for anything in the SIM group
                         if (!expandedAnswer.jingle) {
                             expandedAnswer.jingle = SJJ.toSessionJSON(answer.sdp, {
-                                role: self._role,
+                                role: self._role(),
                                 direction: 'outgoing'
                             });
                         }
@@ -500,7 +502,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                         });
                         expandedAnswer.sdp = SJJ.toSessionSDP(expandedAnswer.jingle, {
                             sid: self.sdpSessionID,
-                            role: self._role,
+                            role: self._role(),
                             direction: 'outgoing'
                         });
                     }
@@ -543,8 +545,8 @@ PeerConnection.prototype._onIce = function (event) {
             }
             if (!self.config.ice[ice.sdpMid]) {
                 var jingle = SJJ.toSessionJSON(self.pc.localDescription.sdp, {
-                    role: self._role,
-                    direction: 'incoming'
+                    role: self._role(),
+                    direction: 'outgoing'
                 });
                 _.each(jingle.contents, function (content) {
                     var transport = content.transport || {};
@@ -559,7 +561,7 @@ PeerConnection.prototype._onIce = function (event) {
             expandedCandidate.jingle = {
                 contents: [{
                     name: ice.sdpMid,
-                    creator: self._role,
+                    creator: self._role(),
                     transport: {
                         transType: 'iceUdp',
                         ufrag: self.config.ice[ice.sdpMid].ufrag,
