@@ -161,6 +161,10 @@ PeerConnection.prototype.processIce = function (update, cb) {
     cb = cb || function () {};
     var self = this;
 
+    // ignore any added ice candidates to avoid errors. why does the
+    // spec not do this?
+    if (this.pc.signalingState === 'closed') return;
+
     if (update.contents) {
         var contentNames = _.pluck(this.remoteDescription.contents, 'name');
         var contents = update.contents;
