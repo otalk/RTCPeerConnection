@@ -163,7 +163,7 @@ PeerConnection.prototype.processIce = function (update, cb) {
 
     // ignore any added ice candidates to avoid errors. why does the
     // spec not do this?
-    if (this.pc.signalingState === 'closed') return;
+    if (this.pc.signalingState === 'closed') return cb();
 
     if (update.contents) {
         var contentNames = _.pluck(this.remoteDescription.contents, 'name');
@@ -223,6 +223,8 @@ PeerConnection.prototype.offer = function (constraints, cb) {
         };
     cb = hasConstraints ? cb : constraints;
     cb = cb || function () {};
+
+    if (this.pc.signalingState === 'closed') return cb('Already closed');
 
     // Actually generate the offer
     this.pc.createOffer(
@@ -420,6 +422,9 @@ PeerConnection.prototype._answer = function (constraints, cb) {
         // the old API is used, call handleOffer
         throw new Error('remoteDescription not set');
     }
+
+    if (this.pc.signalingState === 'closed') return cb('Already closed');
+
     self.pc.createAnswer(
         function (answer) {
             var sim = [];
