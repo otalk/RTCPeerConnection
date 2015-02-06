@@ -853,14 +853,14 @@ exports.toOutgoingJSONAnswer = function (sdp, creators) {
 };
 exports.toIncomingMediaJSONOffer = function (sdp, creator) {
     return toJSON.toMediaJSON(sdp, {
-        role: 'responder',
+        role: 'initiator',
         direction: 'incoming',
         creator: creator
     });
 };
 exports.toOutgoingMediaJSONOffer = function (sdp, creator) {
     return toJSON.toMediaJSON(sdp, {
-        role: 'initiator',
+        role: 'responder',
         direction: 'outgoing',
         creator: creator
     });
@@ -1306,11 +1306,9 @@ exports.toMediaJSON = function (media, session, opts) {
         var rtpmapLines = parsers.findLines('a=rtpmap:', lines);
         rtpmapLines.forEach(function (line) {
             var payload = parsers.rtpmap(line);
-            payload.parameters = [];
             payload.feedback = [];
 
             var fmtpLines = parsers.findLines('a=fmtp:' + payload.id, lines);
-            // There should only be one fmtp line per payload
             fmtpLines.forEach(function (line) {
                 payload.parameters = parsers.fmtp(line);
             });
@@ -3271,11 +3269,17 @@ module.exports = TraceablePeerConnection;
 },{}],10:[function(require,module,exports){
 // created by @HenrikJoreteg
 var prefix;
+var isChrome = false;
+var isFirefox = false;
+var ua = window.navigator.userAgent.toLowerCase();
 
-if (window.mozRTCPeerConnection || navigator.mozGetUserMedia) {
+// basic sniffing
+if (ua.indexOf('firefox') !== -1) {
     prefix = 'moz';
-} else if (window.webkitRTCPeerConnection || navigator.webkitGetUserMedia) {
+    isFirefox = true;
+} else if (ua.indexOf('chrome') !== -1) {
     prefix = 'webkit';
+    isChrome = true;
 }
 
 var PC = window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
@@ -3286,26 +3290,21 @@ var screenSharing = window.location.protocol === 'https:' &&
     ((window.navigator.userAgent.match('Chrome') && parseInt(window.navigator.userAgent.match(/Chrome\/(.*) /)[1], 10) >= 26) ||
      (window.navigator.userAgent.match('Firefox') && parseInt(window.navigator.userAgent.match(/Firefox\/(.*)/)[1], 10) >= 33));
 var AudioContext = window.webkitAudioContext || window.AudioContext;
-var supportVp8 = document.createElement('video').canPlayType('video/webm; codecs="vp8", vorbis') === "probably";
-var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.msGetUserMedia || navigator.mozGetUserMedia;
+
 
 // export support flags and constructors.prototype && PC
 module.exports = {
-    support: !!PC && supportVp8 && !!getUserMedia,
-    supportRTCPeerConnection: !!PC,
-    supportVp8: supportVp8,
-    supportGetUserMedia: !!getUserMedia,
-    supportDataChannel: PC && PC.prototype && PC.prototype.createDataChannel,
-    supportWebAudio: !!(AudioContext && AudioContext.prototype.createMediaStreamSource),
-    supportMediaStream: !!(MediaStream && MediaStream.prototype.removeTrack),
-    supportScreenSharing: !!screenSharing,
+    support: !!PC,
+    dataChannel: isChrome || isFirefox || (PC && PC.prototype && PC.prototype.createDataChannel),
     prefix: prefix,
+    webAudio: !!(AudioContext && AudioContext.prototype.createMediaStreamSource),
+    mediaStream: !!(MediaStream && MediaStream.prototype.removeTrack),
+    screenSharing: !!screenSharing,
     AudioContext: AudioContext,
     PeerConnection: PC,
     SessionDescription: SessionDescription,
     IceCandidate: IceCandidate,
-    MediaStream: MediaStream,
-    getUserMedia: getUserMedia
+    MediaStream: MediaStream
 };
 
 },{}],11:[function(require,module,exports){
@@ -3615,7 +3614,7 @@ PeerConnection.prototype.processIce = function (update, cb) {
 
     // ignore any added ice candidates to avoid errors. why does the
     // spec not do this?
-    if (this.pc.signalingState === 'closed') return;
+    if (this.pc.signalingState === 'closed') return cb();
 
     if (update.contents) {
         var contentNames = _.pluck(this.remoteDescription.contents, 'name');
@@ -3675,6 +3674,8 @@ PeerConnection.prototype.offer = function (constraints, cb) {
         };
     cb = hasConstraints ? cb : constraints;
     cb = cb || function () {};
+
+    if (this.pc.signalingState === 'closed') return cb('Already closed');
 
     // Actually generate the offer
     this.pc.createOffer(
@@ -3872,6 +3873,9 @@ PeerConnection.prototype._answer = function (constraints, cb) {
         // the old API is used, call handleOffer
         throw new Error('remoteDescription not set');
     }
+
+    if (this.pc.signalingState === 'closed') return cb('Already closed');
+
     self.pc.createAnswer(
         function (answer) {
             var sim = [];
