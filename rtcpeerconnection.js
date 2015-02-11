@@ -35,6 +35,15 @@ function PeerConnection(config, constraints) {
             }
         });
     }
+    // EXPERIMENTAL FLAG, might get removed without notice
+    this.restrictBandwidth = 0;
+    if (constraints && constraints.optional) {
+        constraints.optional.forEach(function (constraint, idx) {
+            if (constraint.andyetRestrictBandwidth) {
+                self.restrictBandwidth = constraint.andyetRestrictBandwidth;
+            }
+        });
+    }
 
     this.pc = new peerconn(config, constraints);
 
@@ -465,6 +474,24 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                         });
 
                         answer.jingle.contents[1].description.sourceGroups = groups;
+                        answer.sdp = SJJ.toSessionSDP(answer.jingle, {
+                            sid: self.config.sdpSessionID,
+                            role: self._role(),
+                            direction: 'outgoing'
+                        });
+                    }
+                }
+            }
+            if (self.restrictBandwidth > 0) {
+                answer.jingle = SJJ.toSessionJSON(answer.sdp, {
+                    role: self._role(),
+                    direction: 'outgoing'
+                });
+                if (answer.jingle.contents.length >= 2 && answer.jingle.contents[1].name === 'video') {
+                    var content = answer.jingle.contents[1];
+                    var hasBw = content.description && content.description.bandwidth;
+                    if (!hasBw) {
+                        answer.jingle.contents[1].description.bandwidth = { type:'AS', bandwidth: self.restrictBandwidth.toString() };
                         answer.sdp = SJJ.toSessionSDP(answer.jingle, {
                             sid: self.config.sdpSessionID,
                             role: self._role(),
