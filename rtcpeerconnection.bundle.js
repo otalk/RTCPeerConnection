@@ -853,14 +853,14 @@ exports.toOutgoingJSONAnswer = function (sdp, creators) {
 };
 exports.toIncomingMediaJSONOffer = function (sdp, creator) {
     return toJSON.toMediaJSON(sdp, {
-        role: 'initiator',
+        role: 'responder',
         direction: 'incoming',
         creator: creator
     });
 };
 exports.toOutgoingMediaJSONOffer = function (sdp, creator) {
     return toJSON.toMediaJSON(sdp, {
-        role: 'responder',
+        role: 'initiator',
         direction: 'outgoing',
         creator: creator
     });
@@ -1306,9 +1306,11 @@ exports.toMediaJSON = function (media, session, opts) {
         var rtpmapLines = parsers.findLines('a=rtpmap:', lines);
         rtpmapLines.forEach(function (line) {
             var payload = parsers.rtpmap(line);
+            payload.parameters = [];
             payload.feedback = [];
 
             var fmtpLines = parsers.findLines('a=fmtp:' + payload.id, lines);
+            // There should only be one fmtp line per payload
             fmtpLines.forEach(function (line) {
                 payload.parameters = parsers.fmtp(line);
             });
@@ -3269,17 +3271,11 @@ module.exports = TraceablePeerConnection;
 },{}],10:[function(require,module,exports){
 // created by @HenrikJoreteg
 var prefix;
-var isChrome = false;
-var isFirefox = false;
-var ua = window.navigator.userAgent.toLowerCase();
 
-// basic sniffing
-if (ua.indexOf('firefox') !== -1) {
+if (window.mozRTCPeerConnection || navigator.mozGetUserMedia) {
     prefix = 'moz';
-    isFirefox = true;
-} else if (ua.indexOf('chrome') !== -1) {
+} else if (window.webkitRTCPeerConnection || navigator.webkitGetUserMedia) {
     prefix = 'webkit';
-    isChrome = true;
 }
 
 var PC = window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
@@ -3289,22 +3285,27 @@ var MediaStream = window.webkitMediaStream || window.MediaStream;
 var screenSharing = window.location.protocol === 'https:' &&
     ((window.navigator.userAgent.match('Chrome') && parseInt(window.navigator.userAgent.match(/Chrome\/(.*) /)[1], 10) >= 26) ||
      (window.navigator.userAgent.match('Firefox') && parseInt(window.navigator.userAgent.match(/Firefox\/(.*)/)[1], 10) >= 33));
-var AudioContext = window.webkitAudioContext || window.AudioContext;
-
+var AudioContext = window.AudioContext || window.webkitAudioContext;
+var supportVp8 = document.createElement('video').canPlayType('video/webm; codecs="vp8", vorbis') === "probably";
+var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.msGetUserMedia || navigator.mozGetUserMedia;
 
 // export support flags and constructors.prototype && PC
 module.exports = {
-    support: !!PC,
-    dataChannel: isChrome || isFirefox || (PC && PC.prototype && PC.prototype.createDataChannel),
+    support: !!PC && supportVp8 && !!getUserMedia,
+    supportRTCPeerConnection: !!PC,
+    supportVp8: supportVp8,
+    supportGetUserMedia: !!getUserMedia,
+    supportDataChannel: !!(PC && PC.prototype && PC.prototype.createDataChannel),
+    supportWebAudio: !!(AudioContext && AudioContext.prototype.createMediaStreamSource),
+    supportMediaStream: !!(MediaStream && MediaStream.prototype.removeTrack),
+    supportScreenSharing: !!screenSharing,
     prefix: prefix,
-    webAudio: !!(AudioContext && AudioContext.prototype.createMediaStreamSource),
-    mediaStream: !!(MediaStream && MediaStream.prototype.removeTrack),
-    screenSharing: !!screenSharing,
     AudioContext: AudioContext,
     PeerConnection: PC,
     SessionDescription: SessionDescription,
     IceCandidate: IceCandidate,
-    MediaStream: MediaStream
+    MediaStream: MediaStream,
+    getUserMedia: getUserMedia
 };
 
 },{}],11:[function(require,module,exports){
@@ -3483,6 +3484,15 @@ function PeerConnection(config, constraints) {
         constraints.optional.forEach(function (constraint, idx) {
             if (constraint.enableMultiStreamHacks) {
                 self.enableMultiStreamHacks = true;
+            }
+        });
+    }
+    // EXPERIMENTAL FLAG, might get removed without notice
+    this.restrictBandwidth = 0;
+    if (constraints && constraints.optional) {
+        constraints.optional.forEach(function (constraint, idx) {
+            if (constraint.andyetRestrictBandwidth) {
+                self.restrictBandwidth = constraint.andyetRestrictBandwidth;
             }
         });
     }
@@ -3916,6 +3926,24 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                         });
 
                         answer.jingle.contents[1].description.sourceGroups = groups;
+                        answer.sdp = SJJ.toSessionSDP(answer.jingle, {
+                            sid: self.config.sdpSessionID,
+                            role: self._role(),
+                            direction: 'outgoing'
+                        });
+                    }
+                }
+            }
+            if (self.restrictBandwidth > 0) {
+                answer.jingle = SJJ.toSessionJSON(answer.sdp, {
+                    role: self._role(),
+                    direction: 'outgoing'
+                });
+                if (answer.jingle.contents.length >= 2 && answer.jingle.contents[1].name === 'video') {
+                    var content = answer.jingle.contents[1];
+                    var hasBw = content.description && content.description.bandwidth;
+                    if (!hasBw) {
+                        answer.jingle.contents[1].description.bandwidth = { type:'AS', bandwidth: self.restrictBandwidth.toString() };
                         answer.sdp = SJJ.toSessionSDP(answer.jingle, {
                             sid: self.config.sdpSessionID,
                             role: self._role(),
