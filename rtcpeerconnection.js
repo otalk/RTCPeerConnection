@@ -45,6 +45,21 @@ function PeerConnection(config, constraints) {
         });
     }
 
+    // EXPERIMENTAL FLAG, might get removed without notice
+    // bundle up ice candidates, only works for jingle mode
+    // number > 0 is the delay to wait for additional candidates
+    // ~20ms seems good
+    this.batchIceCandidates = 0;
+    if (constraints && constraints.optional) {
+        constraints.optional.forEach(function (constraint, idx) {
+            if (constraint.andyetBatchIce) {
+                self.batchIceCandidates = constraint.andyetBatchIce;
+            }
+        });
+    }
+    this.batchedIceCandidates = [];
+
+
     this.pc = new peerconn(config, constraints);
 
     this.getLocalStreams = this.pc.getLocalStreams.bind(this.pc);
@@ -174,9 +189,9 @@ PeerConnection.prototype.processIce = function (update, cb) {
     // spec not do this?
     if (this.pc.signalingState === 'closed') return cb();
 
-    if (update.contents) {
+    if (update.contents || (update.jingle && update.jingle.contents)) {
         var contentNames = _.pluck(this.remoteDescription.contents, 'name');
-        var contents = update.contents;
+        var contents = update.contents || update.jingle.contents;
 
         contents.forEach(function (content) {
             var transport = content.transport || {};
@@ -204,7 +219,7 @@ PeerConnection.prototype.processIce = function (update, cb) {
         });
     } else {
         // working around https://code.google.com/p/webrtc/issues/detail?id=3669
-        if (update.candidate.candidate.indexOf('a=') !== 0) {
+        if (update.candidate && update.candidate.candidate.indexOf('a=') !== 0) {
             update.candidate.candidate = 'a=' + update.candidate.candidate;
         }
 
@@ -573,6 +588,7 @@ PeerConnection.prototype._onIce = function (event) {
         var expandedCandidate = {
             candidate: event.candidate
         };
+        this._checkLocalCandidate(ice.candidate);
 
         var cand = SJJ.toCandidateJSON(ice.candidate);
         if (self.config.useJingle) {
@@ -608,8 +624,32 @@ PeerConnection.prototype._onIce = function (event) {
                     }
                 }]
             };
+            if (self.batchIceCandidates > 0) {
+                if (self.batchedIceCandidates.length === 0) {
+                    window.setTimeout(function () {
+                        var contents = {};
+                        self.batchedIceCandidates.forEach(function (content) {
+                            content = content.contents[0];
+                            if (!contents[content.name]) contents[content.name] = content;
+                            contents[content.name].transport.candidates.push(content.transport.candidates[0]);
+                        });
+                        var newCand = { 
+                            jingle: {
+                                contents: []
+                            }
+                        };
+                        Object.keys(contents).forEach(function (name) {
+                            newCand.jingle.contents.push(contents[name]);
+                        });
+                        self.batchedIceCandidates = [];
+                        self.emit('ice', newCand);
+                    }, self.batchIceCandidates);
+                }
+                self.batchedIceCandidates.push(expandedCandidate.jingle);
+                return;
+            }
+
         }
-        this._checkLocalCandidate(ice.candidate);
         this.emit('ice', expandedCandidate);
     } else {
         this.emit('endOfCandidates');
