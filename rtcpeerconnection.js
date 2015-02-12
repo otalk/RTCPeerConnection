@@ -189,9 +189,9 @@ PeerConnection.prototype.processIce = function (update, cb) {
     // spec not do this?
     if (this.pc.signalingState === 'closed') return cb();
 
-    if (update.contents) {
+    if (update.contents || (update.jingle && update.jingle.contents)) {
         var contentNames = _.pluck(this.remoteDescription.contents, 'name');
-        var contents = update.contents;
+        var contents = update.contents || update.jingle.contents;
 
         contents.forEach(function (content) {
             var transport = content.transport || {};
@@ -642,7 +642,7 @@ PeerConnection.prototype._onIce = function (event) {
                             newCand.jingle.contents.push(contents[name]);
                         });
                         self.batchedIceCandidates = [];
-                        self.emit('ice', newCand.jingle);
+                        self.emit('ice', newCand);
                     }, self.batchIceCandidates);
                 }
                 self.batchedIceCandidates.push(expandedCandidate.jingle);
