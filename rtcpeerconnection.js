@@ -345,6 +345,24 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
             });
         }
         */
+        if (self.restrictBandwidth > 0) {
+            offer.jingle = SJJ.toSessionJSON(offer.sdp, {
+                role: self._role(),
+                direction: 'incoming'
+            });
+            if (offer.jingle.contents.length >= 2 && offer.jingle.contents[1].name === 'video') {
+                var content = offer.jingle.contents[1];
+                var hasBw = content.description && content.description.bandwidth;
+                if (!hasBw) {
+                    offer.jingle.contents[1].description.bandwidth = { type:'AS', bandwidth: self.restrictBandwidth.toString() };
+                    offer.sdp = SJJ.toSessionSDP(offer.jingle, {
+                        sid: self.config.sdpSessionID,
+                        role: self._role(),
+                        direction: 'outgoing'
+                    });
+                }
+            }
+        }
         offer.sdp = SJJ.toSessionSDP(offer.jingle, {
             sid: self.config.sdpSessionID,
             role: self._role(),
@@ -489,24 +507,6 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                         });
 
                         answer.jingle.contents[1].description.sourceGroups = groups;
-                        answer.sdp = SJJ.toSessionSDP(answer.jingle, {
-                            sid: self.config.sdpSessionID,
-                            role: self._role(),
-                            direction: 'outgoing'
-                        });
-                    }
-                }
-            }
-            if (self.restrictBandwidth > 0) {
-                answer.jingle = SJJ.toSessionJSON(answer.sdp, {
-                    role: self._role(),
-                    direction: 'outgoing'
-                });
-                if (answer.jingle.contents.length >= 2 && answer.jingle.contents[1].name === 'video') {
-                    var content = answer.jingle.contents[1];
-                    var hasBw = content.description && content.description.bandwidth;
-                    if (!hasBw) {
-                        answer.jingle.contents[1].description.bandwidth = { type:'AS', bandwidth: self.restrictBandwidth.toString() };
                         answer.sdp = SJJ.toSessionSDP(answer.jingle, {
                             sid: self.config.sdpSessionID,
                             role: self._role(),

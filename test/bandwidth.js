@@ -4,7 +4,7 @@ var PeerConnection = require('../rtcpeerconnection');
 
 test('answer bandwidth restriction', function (t) {
     var pc1, pc2;
-    pc1 = new PeerConnection();
+    pc1 = new PeerConnection({useJingle:true});
     pc2 = new PeerConnection({useJingle:true}, {optional:[{andyetRestrictBandwidth:512}]});
 
     pc1.on('ice', function (candidate) {
@@ -40,19 +40,19 @@ test('answer bandwidth restriction', function (t) {
             }
             t.pass('handled offer');
 
+            // check that the remote description contains the bandwidth flag
+            if (!pc2.remoteDescription.contents[1].description.bandwidth) {
+                t.fail('no bandwidth');
+                return;
+            }
+            t.pass('mangled b=AS');
+
             pc2.answer(function (err, answer) {
                 if (err) {
                     t.fail('error handling answer');
                     return;
                 }
                 t.pass('created answer');
-                if (answer.jingle.contents.length >= 2 && answer.jingle.contents[1].name === 'video') {
-                    if (!answer.jingle.contents[1].description.bandwidth) {
-                        t.fail('no bandwidth');
-                        return;
-                    }
-                    t.pass('mangled b=AS');
-                }
                 pc1.handleAnswer(answer, function (err) {
                     if (err) {
                         t.fail('failed to handle answer');
