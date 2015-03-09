@@ -59,6 +59,16 @@ function PeerConnection(config, constraints) {
     }
     this.batchedIceCandidates = [];
 
+    // EXPERIMENTAL FLAG, might get removed without notice
+    this.assumeSetLocalSuccess = false;
+    if (constraints && constraints.optional) {
+        constraints.optional.forEach(function (constraint, idx) {
+            if (constraint.andyetAssumeSetLocalSuccess) {
+                self.assumeSetLocalSuccess = constraint.andyetAssumeSetLocalSuccess;
+            }
+        });
+    }
+
 
     this.pc = new peerconn(config, constraints);
 
@@ -253,6 +263,12 @@ PeerConnection.prototype.offer = function (constraints, cb) {
     // Actually generate the offer
     this.pc.createOffer(
         function (offer) {
+            // does not work for jingle, but jingle.js doesn't need
+            // this hack...
+            if (self.assumeSetLocalSuccess) {
+                self.emit('offer', offer);
+                cb(null, offer);
+            }
             self.pc.setLocalDescription(offer,
                 function () {
                     var jingle;
@@ -287,8 +303,10 @@ PeerConnection.prototype.offer = function (constraints, cb) {
                         }
                     });
 
-                    self.emit('offer', expandedOffer);
-                    cb(null, expandedOffer);
+                    if (!self.assumeSetLocalSuccess) {
+                        self.emit('offer', expandedOffer);
+                        cb(null, expandedOffer);
+                    }
                 },
                 function (err) {
                     self.emit('error', err);
@@ -515,6 +533,11 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                     }
                 }
             }
+            if (self.assumeSetLocalSuccess) {
+                // not safe to do when doing simulcast mangling
+                self.emit('answer', answer);
+                cb(null, answer);
+            }
             self.pc.setLocalDescription(answer,
                 function () {
                     var expandedAnswer = {
@@ -562,8 +585,10 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                             self._checkLocalCandidate(line);
                         }
                     });
-                    self.emit('answer', expandedAnswer);
-                    cb(null, expandedAnswer);
+                    if (!self.assumeSetLocalSuccess) {
+                        self.emit('answer', expandedAnswer);
+                        cb(null, expandedAnswer);
+                    }
                 },
                 function (err) {
                     self.emit('error', err);
