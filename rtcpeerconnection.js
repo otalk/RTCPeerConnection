@@ -74,11 +74,11 @@ function PeerConnection(config, constraints) {
     // pass in a timeout for this
     if (webrtc.prefix === 'moz') {
         if (constraints && constraints.optional) {
-            this.firefoxmakesmesad = 0;
+            this.wtFirefox = 0;
             constraints.optional.forEach(function (constraint, idx) {
                 if (constraint.andyetFirefoxMakesMeSad) {
-                    self.firefoxmakesmesad = constraint.andyetFirefoxMakesMeSad;
-                    if (self.firefoxmakesmesad > 0) {
+                    self.wtFirefox = constraint.andyetFirefoxMakesMeSad;
+                    if (self.wtFirefox > 0) {
                         self.firefoxcandidatebuffer = [];
                     }
                 }
@@ -250,7 +250,7 @@ PeerConnection.prototype.processIce = function (update, cb) {
             update.candidate.candidate = 'a=' + update.candidate.candidate;
         }
 
-        if (this.firefoxmakesmesad && this.firefoxcandidatebuffer !== null) {
+        if (this.wtFirefox && this.firefoxcandidatebuffer !== null) {
             // we cant add this yet due to https://bugzilla.mozilla.org/show_bug.cgi?id=1087551
             if (this.pc.localDescription && this.pc.localDescription.type === 'offer') {
                 this.firefoxcandidatebuffer.push(update.candidate);
@@ -483,7 +483,7 @@ PeerConnection.prototype.handleAnswer = function (answer, cb) {
     self.pc.setRemoteDescription(
         new webrtc.SessionDescription(answer),
         function () {
-            if (self.firefoxmakesmesad) {
+            if (self.wtFirefox) {
                 window.setTimeout(function () {
                     self.firefoxcandidatebuffer.forEach(function (candidate) {
                         // add candidates later
@@ -497,7 +497,7 @@ PeerConnection.prototype.handleAnswer = function (answer, cb) {
                         self._checkRemoteCandidate(candidate.candidate);
                     });
                     self.firefoxcandidatebuffer = null;
-                }, self.firefoxmakesmesad);
+                }, self.wtFirefox);
             }
             cb(null);
         },
