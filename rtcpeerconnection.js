@@ -69,6 +69,23 @@ function PeerConnection(config, constraints) {
         });
     }
 
+    // EXPERIMENTAL FLAG, might get removed without notice
+    // working around https://bugzilla.mozilla.org/show_bug.cgi?id=1087551
+    // pass in a timeout for this
+    if (webrtc.prefix === 'moz') {
+        if (constraints && constraints.optional) {
+            this.wtFirefox = 0;
+            constraints.optional.forEach(function (constraint, idx) {
+                if (constraint.andyetFirefoxMakesMeSad) {
+                    self.wtFirefox = constraint.andyetFirefoxMakesMeSad;
+                    if (self.wtFirefox > 0) {
+                        self.firefoxcandidatebuffer = [];
+                    }
+                }
+            });
+        }
+    }
+
 
     this.pc = new peerconn(config, constraints);
 
@@ -231,6 +248,14 @@ PeerConnection.prototype.processIce = function (update, cb) {
         // working around https://code.google.com/p/webrtc/issues/detail?id=3669
         if (update.candidate && update.candidate.candidate.indexOf('a=') !== 0) {
             update.candidate.candidate = 'a=' + update.candidate.candidate;
+        }
+
+        if (this.wtFirefox && this.firefoxcandidatebuffer !== null) {
+            // we cant add this yet due to https://bugzilla.mozilla.org/show_bug.cgi?id=1087551
+            if (this.pc.localDescription && this.pc.localDescription.type === 'offer') {
+                this.firefoxcandidatebuffer.push(update.candidate);
+                return cb();
+            }
         }
 
         self.pc.addIceCandidate(
@@ -458,6 +483,22 @@ PeerConnection.prototype.handleAnswer = function (answer, cb) {
     self.pc.setRemoteDescription(
         new webrtc.SessionDescription(answer),
         function () {
+            if (self.wtFirefox) {
+                window.setTimeout(function () {
+                    self.firefoxcandidatebuffer.forEach(function (candidate) {
+                        // add candidates later
+                        self.pc.addIceCandidate(
+                            new webrtc.IceCandidate(candidate),
+                            function () { },
+                            function (err) {
+                                self.emit('error', err);
+                            }
+                        );
+                        self._checkRemoteCandidate(candidate.candidate);
+                    });
+                    self.firefoxcandidatebuffer = null;
+                }, self.wtFirefox);
+            }
             cb(null);
         },
         cb
