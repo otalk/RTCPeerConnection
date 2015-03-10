@@ -389,10 +389,6 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
         }
         */
         if (self.restrictBandwidth > 0) {
-            offer.jingle = SJJ.toSessionJSON(offer.sdp, {
-                role: self._role(),
-                direction: 'incoming'
-            });
             if (offer.jingle.contents.length >= 2 && offer.jingle.contents[1].name === 'video') {
                 var content = offer.jingle.contents[1];
                 var hasBw = content.description && content.description.bandwidth;
