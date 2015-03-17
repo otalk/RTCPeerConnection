@@ -648,7 +648,11 @@ PeerConnection.prototype._onIce = function (event) {
         var ice = event.candidate;
 
         var expandedCandidate = {
-            candidate: event.candidate
+            candidate: {
+                candidate: ice.candidate,
+                sdpMid: ice.sdpMid,
+                sdpMLineIndex: ice.sdpMLineIndex
+            }
         };
         this._checkLocalCandidate(ice.candidate);
 
