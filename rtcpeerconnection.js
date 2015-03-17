@@ -290,17 +290,17 @@ PeerConnection.prototype.offer = function (constraints, cb) {
         function (offer) {
             // does not work for jingle, but jingle.js doesn't need
             // this hack...
+            var expandedOffer = {
+                type: 'offer',
+                sdp: offer.sdp
+            };
             if (self.assumeSetLocalSuccess) {
-                self.emit('offer', offer);
-                cb(null, offer);
+                self.emit('offer', expandedOffer);
+                cb(null, expandedOffer);
             }
             self.pc.setLocalDescription(offer,
                 function () {
                     var jingle;
-                    var expandedOffer = {
-                        type: 'offer',
-                        sdp: offer.sdp
-                    };
                     if (self.config.useJingle) {
                         jingle = SJJ.toSessionJSON(offer.sdp, {
                             role: self._role(),
@@ -570,17 +570,17 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                     }
                 }
             }
+            var expandedAnswer = {
+                type: 'answer',
+                sdp: answer.sdp
+            };
             if (self.assumeSetLocalSuccess) {
                 // not safe to do when doing simulcast mangling
-                self.emit('answer', answer);
-                cb(null, answer);
+                self.emit('answer', expandedAnswer);
+                cb(null, expandedAnswer);
             }
             self.pc.setLocalDescription(answer,
                 function () {
-                    var expandedAnswer = {
-                        type: 'answer',
-                        sdp: answer.sdp
-                    };
                     if (self.config.useJingle) {
                         var jingle = SJJ.toSessionJSON(answer.sdp, {
                             role: self._role(),
