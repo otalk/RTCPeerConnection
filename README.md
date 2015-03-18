@@ -3,7 +3,7 @@
 
 ## What is this?
 
-A tiny browser module that gives normalizes and simplifies the API for WebRTC peer connections.
+A tiny browser module that normalizes and simplifies the API for WebRTC peer connections.
 
 It gives us a cleaner (cross-browser) way to handle offer/answer and is based on an event emitter.
 
