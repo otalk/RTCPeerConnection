@@ -362,7 +362,6 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
                 }
             });
         }
-        /*
         if (this.enableMultiStreamHacks) {
             // add a mixed video stream as first stream
             offer.jingle.contents.forEach(function (content) {
@@ -387,7 +386,6 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
                 }
             });
         }
-        */
         if (self.restrictBandwidth > 0) {
             if (offer.jingle.contents.length >= 2 && offer.jingle.contents[1].name === 'video') {
                 var content = offer.jingle.contents[1];
