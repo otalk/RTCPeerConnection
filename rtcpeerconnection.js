@@ -1,9 +1,11 @@
-var _ = require('underscore');
 var util = require('util');
+var each = require('lodash.foreach');
+var pluck = require('lodash.pluck');
 var webrtc = require('webrtcsupport');
 var SJJ = require('sdp-jingle-json');
 var WildEmitter = require('wildemitter');
 var peerconn = require('traceablepeerconnection');
+
 
 function PeerConnection(config, constraints) {
     var self = this;
@@ -217,7 +219,7 @@ PeerConnection.prototype.processIce = function (update, cb) {
     if (this.pc.signalingState === 'closed') return cb();
 
     if (update.contents || (update.jingle && update.jingle.contents)) {
-        var contentNames = _.pluck(this.remoteDescription.contents, 'name');
+        var contentNames = pluck(this.remoteDescription.contents, 'name');
         var contents = update.contents || update.jingle.contents;
 
         contents.forEach(function (content) {
@@ -310,7 +312,7 @@ PeerConnection.prototype.offer = function (constraints, cb) {
                         self.localDescription = jingle;
 
                         // Save ICE credentials
-                        _.each(jingle.contents, function (content) {
+                        each(jingle.contents, function (content) {
                             var transport = content.transport || {};
                             if (transport.ufrag) {
                                 self.config.ice[content.name] = {
@@ -664,7 +666,7 @@ PeerConnection.prototype._onIce = function (event) {
                     role: self._role(),
                     direction: 'outgoing'
                 });
-                _.each(jingle.contents, function (content) {
+                each(jingle.contents, function (content) {
                     var transport = content.transport || {};
                     if (transport.ufrag) {
                         self.config.ice[content.name] = {

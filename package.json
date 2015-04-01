@@ -16,11 +16,12 @@
   "author": "Henrik Joreteg <henrik@andyet.net>",
   "license": "MIT",
   "dependencies": {
-    "wildemitter": "1.x",
-    "webrtcsupport": "^1.0.0",
-    "traceablepeerconnection": "^1.0.0",
+    "lodash.foreach": "^3.0.2",
+    "lodash.pluck": "^3.0.2",
     "sdp-jingle-json": "2.x",
-    "underscore": "1.x"
+    "traceablepeerconnection": "^1.0.0",
+    "webrtcsupport": "^1.0.0",
+    "wildemitter": "1.x"
   },
   "devDependencies": {
     "browserify": "2.x",
