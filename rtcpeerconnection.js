@@ -94,7 +94,7 @@ function PeerConnection(config, constraints) {
     this.addStream = this.pc.addStream.bind(this.pc);
     this.removeStream = this.pc.removeStream.bind(this.pc);
 
-    // proxy events 
+    // proxy events
     this.pc.on('*', function () {
         self.emit.apply(self, arguments);
     });
@@ -148,7 +148,7 @@ function PeerConnection(config, constraints) {
     // keeping references for all our data channels
     // so they dont get garbage collected
     // can be removed once the following bugs have been fixed
-    // https://crbug.com/405545 
+    // https://crbug.com/405545
     // https://bugzilla.mozilla.org/show_bug.cgi?id=964092
     // to be filed for opera
     this._remoteDataChannels = [];
@@ -391,7 +391,7 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
                 var content = offer.jingle.contents[1];
                 var hasBw = content.description && content.description.bandwidth;
                 if (!hasBw) {
-                    offer.jingle.contents[1].description.bandwidth = { type:'AS', bandwidth: self.restrictBandwidth.toString() };
+                    offer.jingle.contents[1].description.bandwidth = { type: 'AS', bandwidth: self.restrictBandwidth.toString() };
                     offer.sdp = SJJ.toSessionSDP(offer.jingle, {
                         sid: self.config.sdpSessionID,
                         role: self._role(),
@@ -589,7 +589,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                         expandedAnswer.jingle = jingle;
                     }
                     if (self.enableChromeNativeSimulcast) {
-                        // native simulcast part 2: 
+                        // native simulcast part 2:
                         // signal multiple tracks to the receiver
                         // for anything in the SIM group
                         if (!expandedAnswer.jingle) {
@@ -697,7 +697,7 @@ PeerConnection.prototype._onIce = function (event) {
                             if (!contents[content.name]) contents[content.name] = content;
                             contents[content.name].transport.candidates.push(content.transport.candidates[0]);
                         });
-                        var newCand = { 
+                        var newCand = {
                             jingle: {
                                 contents: []
                             }
