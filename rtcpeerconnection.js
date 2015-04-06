@@ -6,6 +6,21 @@ var SJJ = require('sdp-jingle-json');
 var WildEmitter = require('wildemitter');
 var peerconn = require('traceablepeerconnection');
 
+function getMediaConstraints(audio, video) {
+    // I think it is chrome 39 but 40 should be safe, the old constraints still work
+    if (webrtc.prefix === 'webkit' && webrtc.browserVersion <= 40) {
+        return {mandatory: {
+                OfferToReceiveAudio: audio,
+                OfferToReceiveVideo: video
+            }
+        };
+    }
+    // new style constraints
+    return {
+        offerToReceiveAudio: audio,
+        offerToReceiveVideo: video
+    };
+}
 
 function PeerConnection(config, constraints) {
     var self = this;
@@ -277,12 +292,7 @@ PeerConnection.prototype.processIce = function (update, cb) {
 PeerConnection.prototype.offer = function (constraints, cb) {
     var self = this;
     var hasConstraints = arguments.length === 2;
-    var mediaConstraints = hasConstraints ? constraints : {
-            mandatory: {
-                OfferToReceiveAudio: true,
-                OfferToReceiveVideo: true
-            }
-        };
+    var mediaConstraints = hasConstraints ? constraints : getMediaConstraints(true, true);
     cb = hasConstraints ? cb : constraints;
     cb = cb || function () {};
 
@@ -425,23 +435,13 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
 
 // Answer an offer with audio only
 PeerConnection.prototype.answerAudioOnly = function (cb) {
-    var mediaConstraints = {
-            mandatory: {
-                OfferToReceiveAudio: true,
-                OfferToReceiveVideo: false
-            }
-        };
+    var mediaConstraints = getMediaConstraints(true, false);
     this._answer(mediaConstraints, cb);
 };
 
 // Answer an offer without offering to recieve
 PeerConnection.prototype.answerBroadcastOnly = function (cb) {
-    var mediaConstraints = {
-            mandatory: {
-                OfferToReceiveAudio: false,
-                OfferToReceiveVideo: false
-            }
-        };
+    var mediaConstraints = getMediaConstraints(false, false);
     this._answer(mediaConstraints, cb);
 };
 
@@ -450,13 +450,7 @@ PeerConnection.prototype.answer = function (constraints, cb) {
     var self = this;
     var hasConstraints = arguments.length === 2;
     var callback = hasConstraints ? cb : constraints;
-    var mediaConstraints = hasConstraints ? constraints : {
-            mandatory: {
-                OfferToReceiveAudio: true,
-                OfferToReceiveVideo: true
-            }
-        };
-
+    var mediaConstraints = getMediaConstraints(true, true);
     this._answer(mediaConstraints, callback);
 };
 
