@@ -20,7 +20,7 @@
     "lodash.pluck": "^3.0.2",
     "sdp-jingle-json": "2.x",
     "traceablepeerconnection": "^1.0.0",
-    "webrtcsupport": "^1.0.0",
+    "webrtcsupport": "^1.3.2",
     "wildemitter": "1.x"
   },
   "devDependencies": {
