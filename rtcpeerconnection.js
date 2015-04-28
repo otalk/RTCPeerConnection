@@ -63,6 +63,18 @@ function PeerConnection(config, constraints) {
     this.batchedIceCandidates = [];
 
     // EXPERIMENTAL FLAG, might get removed without notice
+    // this attemps to strip out candidates with an already known foundation
+    // and type -- i.e. those which are gathered via the same TURN server
+    // but different transports (TURN udp, tcp and tls respectively)
+    if (constraints && constraints.optional && webrtc.prefix === 'webkit') {
+        constraints.optional.forEach(function (constraint, idx) {
+            if (constraint.andyetFasterICE) {
+                self.eliminateDuplicateCandidates = constraint.andyetFasterICE;
+            }
+        });
+    }
+
+    // EXPERIMENTAL FLAG, might get removed without notice
     this.assumeSetLocalSuccess = false;
     if (constraints && constraints.optional) {
         constraints.optional.forEach(function (constraint, idx) {
@@ -156,6 +168,8 @@ function PeerConnection(config, constraints) {
     // to be filed for opera
     this._remoteDataChannels = [];
     this._localDataChannels = [];
+
+    this._relayCandidateBuffer = [];
 }
 
 util.inherits(PeerConnection, WildEmitter);
@@ -301,6 +315,7 @@ PeerConnection.prototype.offer = function (constraints, cb) {
                 self.emit('offer', expandedOffer);
                 cb(null, expandedOffer);
             }
+            self._relayCandidateBuffer = [];
             self.pc.setLocalDescription(offer,
                 function () {
                     var jingle;
@@ -580,6 +595,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                 self.emit('answer', expandedAnswer);
                 cb(null, expandedAnswer);
             }
+            self._relayCandidateBuffer = [];
             self.pc.setLocalDescription(answer,
                 function () {
                     if (self.config.useJingle) {
@@ -658,6 +674,21 @@ PeerConnection.prototype._onIce = function (event) {
         this._checkLocalCandidate(ice.candidate);
 
         var cand = SJJ.toCandidateJSON(ice.candidate);
+        if (this.eliminateDuplicateCandidates && cand.type === 'relay') {
+            // drop candidates with same foundation, component
+            // take local type pref into account so we don't ignore udp
+            // ones when we know about a TCP one. unlikely but...
+            var already = this._relayCandidateBuffer.map(function (c) {
+                return c.foundation + ':' + c.component;
+            });
+            var idx = already.indexOf(cand.foundation + ':' + cand.component);
+            // remember: local type pref of udp is 0, tcp 1, tls 2
+            if (idx > -1 && ((cand.priority >> 24) >= (already[idx].priority >> 24))) {
+                // drop it, same foundation with higher (worse) type pref
+                return;
+            }
+            this._relayCandidateBuffer.push(cand);
+        }
         if (self.config.useJingle) {
             if (!ice.sdpMid) { // firefox doesn't set this
                 if (self.pc.remoteDescription && self.pc.remoteDescription.type === 'offer') {
