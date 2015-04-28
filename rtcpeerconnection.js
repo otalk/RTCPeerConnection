@@ -69,11 +69,10 @@ function PeerConnection(config, constraints) {
     if (constraints && constraints.optional && webrtc.prefix === 'webkit') {
         constraints.optional.forEach(function (constraint, idx) {
             if (constraint.andyetFasterICE) {
-                self.eliminiateDuplicateCandidates = constraint.andyetFasterICE;
+                self.eliminateDuplicateCandidates = constraint.andyetFasterICE;
             }
         });
     }
-
 
     // EXPERIMENTAL FLAG, might get removed without notice
     this.assumeSetLocalSuccess = false;
@@ -675,7 +674,7 @@ PeerConnection.prototype._onIce = function (event) {
         this._checkLocalCandidate(ice.candidate);
 
         var cand = SJJ.toCandidateJSON(ice.candidate);
-        if (this.eliminiateDuplicateCandidates && cand.type === 'relay') {
+        if (this.eliminateDuplicateCandidates && cand.type === 'relay') {
             // drop candidates with same foundation, component
             // take local type pref into account so we don't ignore udp
             // ones when we know about a TCP one. unlikely but...
@@ -683,8 +682,9 @@ PeerConnection.prototype._onIce = function (event) {
                 return c.foundation + ':' + c.component;
             });
             var idx = already.indexOf(cand.foundation + ':' + cand.component);
-            if (idx > -1 && ((cand.priority >> 24) < (already[idx].priority >> 24))) {
-                // drop it
+            // remember: local type pref of udp is 0, tcp 1, tls 2
+            if (idx > -1 && ((cand.priority >> 24) >= (already[idx].priority >> 24))) {
+                // drop it, same foundation with higher (worse) type pref
                 return;
             }
             this._relayCandidateBuffer.push(cand);
