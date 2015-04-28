@@ -277,7 +277,7 @@ PeerConnection.prototype.processIce = function (update, cb) {
 PeerConnection.prototype.offer = function (constraints, cb) {
     var self = this;
     var hasConstraints = arguments.length === 2;
-    var mediaConstraints = hasConstraints ? constraints : {
+    var mediaConstraints = hasConstraints && constraints ? constraints : {
             mandatory: {
                 OfferToReceiveAudio: true,
                 OfferToReceiveVideo: true
@@ -450,7 +450,7 @@ PeerConnection.prototype.answer = function (constraints, cb) {
     var self = this;
     var hasConstraints = arguments.length === 2;
     var callback = hasConstraints ? cb : constraints;
-    var mediaConstraints = hasConstraints ? constraints : {
+    var mediaConstraints = hasConstraints && constraints ? constraints : {
             mandatory: {
                 OfferToReceiveAudio: true,
                 OfferToReceiveVideo: true
