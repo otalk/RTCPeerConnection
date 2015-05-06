@@ -689,6 +689,13 @@ PeerConnection.prototype._onIce = function (event) {
             }
             this._relayCandidateBuffer.push(cand);
         }
+        // also drop rtcp candidates since we know the peer supports RTCP-MUX
+        // this is a workaround until browsers implement this natively
+        // TODO: name is chosen tentatively
+        if (this.config.rtcpMuxPolicy === 'require' && cand.component === '2') {
+            return;
+        }
+
         if (self.config.useJingle) {
             if (!ice.sdpMid) { // firefox doesn't set this
                 if (self.pc.remoteDescription && self.pc.remoteDescription.type === 'offer') {
