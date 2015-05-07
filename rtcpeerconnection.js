@@ -73,6 +73,17 @@ function PeerConnection(config, constraints) {
             }
         });
     }
+    // EXPERIMENTAL FLAG, might get removed without notice
+    // when using a server such as the jitsi videobridge we don't need to signal
+    // our candidates
+    if (constraints && constraints.optional) {
+        constraints.optional.forEach(function (constraint, idx) {
+            if (constraint.andyetDontSignalCandidates) {
+                self.dontSignalCandidates = constraint.andyetDontSignalCandidates;
+            }
+        });
+    }
+
 
     // EXPERIMENTAL FLAG, might get removed without notice
     this.assumeSetLocalSuccess = false;
@@ -662,6 +673,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
 PeerConnection.prototype._onIce = function (event) {
     var self = this;
     if (event.candidate) {
+        if (this.dontSignalCandidates) return;
         var ice = event.candidate;
 
         var expandedCandidate = {
