@@ -169,7 +169,7 @@ function PeerConnection(config, constraints) {
     this._remoteDataChannels = [];
     this._localDataChannels = [];
 
-    this._relayCandidateBuffer = [];
+    this._candidateBuffer = [];
 }
 
 util.inherits(PeerConnection, WildEmitter);
@@ -315,7 +315,7 @@ PeerConnection.prototype.offer = function (constraints, cb) {
                 self.emit('offer', expandedOffer);
                 cb(null, expandedOffer);
             }
-            self._relayCandidateBuffer = [];
+            self._candidateBuffer = [];
             self.pc.setLocalDescription(offer,
                 function () {
                     var jingle;
@@ -595,7 +595,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                 self.emit('answer', expandedAnswer);
                 cb(null, expandedAnswer);
             }
-            self._relayCandidateBuffer = [];
+            self._candidateBuffer = [];
             self.pc.setLocalDescription(answer,
                 function () {
                     if (self.config.useJingle) {
@@ -674,27 +674,46 @@ PeerConnection.prototype._onIce = function (event) {
         this._checkLocalCandidate(ice.candidate);
 
         var cand = SJJ.toCandidateJSON(ice.candidate);
+
+        var already;
+        var idx;
         if (this.eliminateDuplicateCandidates && cand.type === 'relay') {
             // drop candidates with same foundation, component
             // take local type pref into account so we don't ignore udp
             // ones when we know about a TCP one. unlikely but...
-            var already = this._relayCandidateBuffer.map(function (c) {
-                return c.foundation + ':' + c.component;
-            });
-            var idx = already.indexOf(cand.foundation + ':' + cand.component);
+            already = this._candidateBuffer.filter(
+                function (c) {
+                    return c.type === 'relay';
+                }).map(function (c) {
+                    return c.foundation + ':' + c.component;
+                }
+            );
+            idx = already.indexOf(cand.foundation + ':' + cand.component);
             // remember: local type pref of udp is 0, tcp 1, tls 2
             if (idx > -1 && ((cand.priority >> 24) >= (already[idx].priority >> 24))) {
                 // drop it, same foundation with higher (worse) type pref
                 return;
             }
-            this._relayCandidateBuffer.push(cand);
+        }
+        if (this.config.bundlePolicy === 'max-bundle') {
+            // drop candidates which are duplicate for audio/video/data
+            // duplicate means same host/port but different sdpMid
+            already = this._candidateBuffer.filter(
+                function (c) {
+                    return cand.type === c.type;
+                }).map(function (cand) {
+                    return cand.address + ':' + cand.port;
+                }
+            );
+            idx = already.indexOf(cand.address + ':' + cand.port);
+            if (idx > -1) return;
         }
         // also drop rtcp candidates since we know the peer supports RTCP-MUX
         // this is a workaround until browsers implement this natively
-        // TODO: name is chosen tentatively
         if (this.config.rtcpMuxPolicy === 'require' && cand.component === '2') {
             return;
         }
+        this._candidateBuffer.push(cand);
 
         if (self.config.useJingle) {
             if (!ice.sdpMid) { // firefox doesn't set this
