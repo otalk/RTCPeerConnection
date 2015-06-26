@@ -5,6 +5,7 @@ var webrtc = require('webrtcsupport');
 var SJJ = require('sdp-jingle-json');
 var WildEmitter = require('wildemitter');
 var peerconn = require('traceablepeerconnection');
+var adapter = require('webrtc-adapter-test');
 
 
 function PeerConnection(config, constraints) {
@@ -19,7 +20,7 @@ function PeerConnection(config, constraints) {
     // EXPERIMENTAL FLAG, might get removed without notice
     this.enableChromeNativeSimulcast = false;
     if (constraints && constraints.optional &&
-            webrtc.prefix === 'webkit' &&
+            adapter.webrtcDetectedBrowser === 'chrome' && 
             navigator.appVersion.match(/Chromium\//) === null) {
         constraints.optional.forEach(function (constraint, idx) {
             if (constraint.enableChromeNativeSimulcast) {
@@ -31,7 +32,7 @@ function PeerConnection(config, constraints) {
     // EXPERIMENTAL FLAG, might get removed without notice
     this.enableMultiStreamHacks = false;
     if (constraints && constraints.optional &&
-            webrtc.prefix === 'webkit') {
+            adapter.webrtcDetectedBrowser === 'chrome') {
         constraints.optional.forEach(function (constraint, idx) {
             if (constraint.enableMultiStreamHacks) {
                 self.enableMultiStreamHacks = true;
@@ -66,7 +67,7 @@ function PeerConnection(config, constraints) {
     // this attemps to strip out candidates with an already known foundation
     // and type -- i.e. those which are gathered via the same TURN server
     // but different transports (TURN udp, tcp and tls respectively)
-    if (constraints && constraints.optional && webrtc.prefix === 'webkit') {
+    if (constraints && constraints.optional && adapter.webrtcDetectedBrowser === 'chrome') {
         constraints.optional.forEach(function (constraint, idx) {
             if (constraint.andyetFasterICE) {
                 self.eliminateDuplicateCandidates = constraint.andyetFasterICE;
@@ -98,7 +99,7 @@ function PeerConnection(config, constraints) {
     // EXPERIMENTAL FLAG, might get removed without notice
     // working around https://bugzilla.mozilla.org/show_bug.cgi?id=1087551
     // pass in a timeout for this
-    if (webrtc.prefix === 'moz') {
+    if (adapter.webrtcDetectedBrowser === 'firefox') {
         if (constraints && constraints.optional) {
             this.wtFirefox = 0;
             constraints.optional.forEach(function (constraint, idx) {
@@ -258,7 +259,7 @@ PeerConnection.prototype.processIce = function (update, cb) {
                 function (candidate) {
                 var iceCandidate = SJJ.toCandidateSDP(candidate) + '\r\n';
                 self.pc.addIceCandidate(
-                    new webrtc.IceCandidate({
+                    new RTCIceCandidate({
                         candidate: iceCandidate,
                         sdpMLineIndex: mline,
                         sdpMid: mid
@@ -287,7 +288,7 @@ PeerConnection.prototype.processIce = function (update, cb) {
         }
 
         self.pc.addIceCandidate(
-            new webrtc.IceCandidate(update.candidate),
+            new RTCIceCandidate(update.candidate),
             function () { },
             function (err) {
                 self.emit('error', err);
@@ -441,7 +442,7 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
             self._checkRemoteCandidate(line);
         }
     });
-    self.pc.setRemoteDescription(new webrtc.SessionDescription(offer),
+    self.pc.setRemoteDescription(new RTCSessionDescription(offer),
         function () {
             cb();
         },
@@ -504,14 +505,14 @@ PeerConnection.prototype.handleAnswer = function (answer, cb) {
         }
     });
     self.pc.setRemoteDescription(
-        new webrtc.SessionDescription(answer),
+        new RTCSessionDescription(answer),
         function () {
             if (self.wtFirefox) {
                 window.setTimeout(function () {
                     self.firefoxcandidatebuffer.forEach(function (candidate) {
                         // add candidates later
                         self.pc.addIceCandidate(
-                            new webrtc.IceCandidate(candidate),
+                            new RTCIceCandidate(candidate),
                             function () { },
                             function (err) {
                                 self.emit('error', err);
@@ -819,8 +820,9 @@ PeerConnection.prototype.createDataChannel = function (name, opts) {
 };
 
 // a wrapper around getStats which hides the differences (where possible)
+// TODO: remove in favor of adapter.js shim
 PeerConnection.prototype.getStats = function (cb) {
-    if (webrtc.prefix === 'moz') {
+    if (adapter.webrtcDetectedBrowser === 'firefox') {
         this.pc.getStats(
             function (res) {
                 var items = [];
