@@ -5,11 +5,7 @@ var webrtc = require('webrtcsupport');
 var SJJ = require('sdp-jingle-json');
 var WildEmitter = require('wildemitter');
 var peerconn = require('traceablepeerconnection');
-if (!(window.webkitRTCPeerConnection || window.mozRTCPeerConnection)) {
-    window.RTCPeerConnection = null;
-}
 var adapter = require('webrtc-adapter-test');
-
 
 function PeerConnection(config, constraints) {
     var self = this;
