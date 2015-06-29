@@ -22,7 +22,7 @@
     "traceablepeerconnection": "^1.0.0",
     "webrtcsupport": "^1.0.0",
     "wildemitter": "1.x",
-    "webrtc-adapter-test": "0.x"
+    "webrtc-adapter-test": "^0.1.4"
   },
   "devDependencies": {
     "browserify": "2.x",
