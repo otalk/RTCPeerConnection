@@ -25,9 +25,11 @@
     "webrtc-adapter-test": "^0.1.4"
   },
   "devDependencies": {
-    "browserify": "2.x",
+    "browserify": "^10.2.1",
     "precommit-hook": "1.x",
-    "tape": "2.x"
+    "tape": "^4.0.0",
+    "travis-multirunner": "^2.5.0",
+    "testling": "^1.7.1"
   },
   "testling": {
     "files": "test/*.js",
