@@ -1,6 +1,6 @@
-var bundle = require('browserify')(),
+var bundle = require('browserify')({standalone: 'PeerConnection'}),
     fs = require('fs');
 
 
 bundle.add('./rtcpeerconnection');
-bundle.bundle({standalone: 'PeerConnection'}).pipe(fs.createWriteStream('rtcpeerconnection.bundle.js'));
+bundle.bundle().pipe(fs.createWriteStream('rtcpeerconnection.bundle.js'));

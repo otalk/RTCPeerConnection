@@ -472,7 +472,6 @@ PeerConnection.prototype.answerBroadcastOnly = function (cb) {
 
 // Answer an offer with given constraints default is audio/video
 PeerConnection.prototype.answer = function (constraints, cb) {
-    var self = this;
     var hasConstraints = arguments.length === 2;
     var callback = hasConstraints ? cb : constraints;
     var mediaConstraints = hasConstraints && constraints ? constraints : {
@@ -551,7 +550,6 @@ PeerConnection.prototype._answer = function (constraints, cb) {
     self.pc.createAnswer(
         function (answer) {
             var sim = [];
-            var rtx = [];
             if (self.enableChromeNativeSimulcast) {
                 // native simulcast part 1: add another SSRC
                 answer.jingle = SJJ.toSessionJSON(answer.sdp, {
@@ -559,7 +557,6 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                     direction: 'outgoing'
                 });
                 if (answer.jingle.contents.length >= 2 && answer.jingle.contents[1].name === 'video') {
-                    var hasSimgroup = false;
                     var groups = answer.jingle.contents[1].description.sourceGroups || [];
                     var hasSim = false;
                     groups.forEach(function (group) {
@@ -627,7 +624,6 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                                 direction: 'outgoing'
                             });
                         }
-                        var groups = expandedAnswer.jingle.contents[1].description.sourceGroups || [];
                         expandedAnswer.jingle.contents[1].description.sources.forEach(function (source, idx) {
                             // the floor idx/2 is a hack that relies on a particular order
                             // of groups, alternating between sim and rtx
