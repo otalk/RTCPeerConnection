@@ -12,6 +12,7 @@
     "indent": 4,
     "latedef": true,
     "newcap": true,
+    "unused": true,
     "globals": {
         "RTCIceCandidate": true,
         "RTCPeerConnection": true,
