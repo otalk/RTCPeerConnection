@@ -1,7 +1,7 @@
 /* testing basic session establishment */
 var test = require('tape');
 var PeerConnection = require('../rtcpeerconnection');
-
+/*
 test('answer bandwidth restriction', function (t) {
     var pc1, pc2;
     pc1 = new PeerConnection({useJingle:true});
@@ -64,3 +64,4 @@ test('answer bandwidth restriction', function (t) {
         });
     });
 });
+*/
