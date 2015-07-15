@@ -19,10 +19,10 @@
     "lodash.foreach": "^3.0.2",
     "lodash.pluck": "^3.0.2",
     "sdp-jingle-json": "2.x",
-    "traceablepeerconnection": "^1.0.0",
+    "traceablepeerconnection": "^1.1.1",
     "webrtcsupport": "^1.0.0",
     "wildemitter": "1.x",
-    "webrtc-adapter-test": "^0.1.4"
+    "webrtc-adapter-test": "^0.1.6"
   },
   "devDependencies": {
     "browserify": "^10.2.1",
