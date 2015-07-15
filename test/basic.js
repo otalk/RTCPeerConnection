@@ -9,14 +9,16 @@ test('basic connection establishment', function (t) {
     pc2 = new PeerConnection();
 
     pc1.on('ice', function (candidate) {
+        console.log('pc1 candidate', candidate);
         pc2.processIce(candidate);
     });
     pc2.on('ice', function (candidate) {
+        console.log('pc2 candidate', candidate);
         pc1.processIce(candidate);
     });
 
     pc1.on('iceConnectionStateChange', function () {
-        //console.log('pc1 iceConnectionStateChange', pc1.iceConnectionState);
+        console.log('pc1 iceConnectionStateChange', pc1.iceConnectionState);
         if (pc1.iceConnectionState == 'connected') {
             t.pass('P2P connection established');
             t.end();
@@ -24,7 +26,7 @@ test('basic connection establishment', function (t) {
         // FIXME: also look for https://code.google.com/p/webrtc/issues/detail?id=1414
     });
     pc2.on('iceConnectionStateChange', function () {
-        //console.log('pc2 iceConnectionStateChange', pc2.iceConnectionState);
+        console.log('pc2 iceConnectionStateChange', pc2.iceConnectionState);
     });
 
     navigator.mediaDevices.getUserMedia({video: true, fake: true})
@@ -79,7 +81,7 @@ test('basic connection establishment -- using Jingle', function (t) {
     });
 
     pc1.on('iceConnectionStateChange', function () {
-        //console.log('pc1 iceConnectionStateChange', pc1.iceConnectionState);
+        console.log('pc1 iceConnectionStateChange', pc1.iceConnectionState);
         if (pc1.iceConnectionState == 'connected') {
             t.pass('P2P connection established');
             t.end();
@@ -87,7 +89,7 @@ test('basic connection establishment -- using Jingle', function (t) {
         // FIXME: also look for https://code.google.com/p/webrtc/issues/detail?id=1414
     });
     pc2.on('iceConnectionStateChange', function () {
-        //console.log('pc2 iceConnectionStateChange', pc2.iceConnectionState);
+        console.log('pc2 iceConnectionStateChange', pc2.iceConnectionState);
     });
 
     navigator.mediaDevices.getUserMedia({video: true, fake: true})
