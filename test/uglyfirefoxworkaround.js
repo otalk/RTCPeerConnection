@@ -1,6 +1,7 @@
 /* testing basic session establishment */
 var test = require('tape');
 var PeerConnection = require('../rtcpeerconnection');
+var adapter = require('webrtc-adapter-test');
 
 test('firefox workaround', function (t) {
     var pc1, pc2;
@@ -38,32 +39,36 @@ test('firefox workaround', function (t) {
         console.log('pc2 iceConnectionStateChange', pc2.iceConnectionState);
     });
 
-    pc1.offer(function (err, offer) {
-        if (err) {
-            t.fail('failed to create offer');
-            return;
-        }
-        t.pass('created offer');
-        pc2.handleOffer(offer, function (err) {
+    navigator.mediaDevices.getUserMedia({video: true, fake: true})
+    .then(function (stream) {
+        pc1.addStream(stream);
+        pc1.offer(function (err, offer) {
             if (err) {
-                // handle error
-                t.fail('error handling offer');
+                t.fail('failed to create offer');
                 return;
             }
-            t.pass('handled offer');
-
-            pc2.answer(function (err, answer) {
+            t.pass('created offer');
+            pc2.handleOffer(offer, function (err) {
                 if (err) {
-                    t.fail('error handling answer');
+                    // handle error
+                    t.fail('error handling offer');
                     return;
                 }
-                t.pass('created answer');
-                pc1.handleAnswer(answer, function (err) {
+                t.pass('handled offer');
+
+                pc2.answer(function (err, answer) {
                     if (err) {
-                        t.fail('failed to handle answer');
+                        t.fail('error handling answer');
                         return;
                     }
-                    t.pass('handled answer');
+                    t.pass('created answer');
+                    pc1.handleAnswer(answer, function (err) {
+                        if (err) {
+                            t.fail('failed to handle answer');
+                            return;
+                        }
+                        t.pass('handled answer');
+                    });
                 });
             });
         });
