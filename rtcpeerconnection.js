@@ -20,7 +20,7 @@ function PeerConnection(config, constraints) {
     if (constraints && constraints.optional &&
             adapter.webrtcDetectedBrowser === 'chrome' &&
             navigator.appVersion.match(/Chromium\//) === null) {
-        constraints.optional.forEach(function (constraint, idx) {
+        constraints.optional.forEach(function (constraint) {
             if (constraint.enableChromeNativeSimulcast) {
                 self.enableChromeNativeSimulcast = true;
             }
@@ -31,7 +31,7 @@ function PeerConnection(config, constraints) {
     this.enableMultiStreamHacks = false;
     if (constraints && constraints.optional &&
             adapter.webrtcDetectedBrowser === 'chrome') {
-        constraints.optional.forEach(function (constraint, idx) {
+        constraints.optional.forEach(function (constraint) {
             if (constraint.enableMultiStreamHacks) {
                 self.enableMultiStreamHacks = true;
             }
@@ -40,7 +40,7 @@ function PeerConnection(config, constraints) {
     // EXPERIMENTAL FLAG, might get removed without notice
     this.restrictBandwidth = 0;
     if (constraints && constraints.optional) {
-        constraints.optional.forEach(function (constraint, idx) {
+        constraints.optional.forEach(function (constraint) {
             if (constraint.andyetRestrictBandwidth) {
                 self.restrictBandwidth = constraint.andyetRestrictBandwidth;
             }
@@ -53,7 +53,7 @@ function PeerConnection(config, constraints) {
     // ~20ms seems good
     this.batchIceCandidates = 0;
     if (constraints && constraints.optional) {
-        constraints.optional.forEach(function (constraint, idx) {
+        constraints.optional.forEach(function (constraint) {
             if (constraint.andyetBatchIce) {
                 self.batchIceCandidates = constraint.andyetBatchIce;
             }
@@ -66,7 +66,7 @@ function PeerConnection(config, constraints) {
     // and type -- i.e. those which are gathered via the same TURN server
     // but different transports (TURN udp, tcp and tls respectively)
     if (constraints && constraints.optional && adapter.webrtcDetectedBrowser === 'chrome') {
-        constraints.optional.forEach(function (constraint, idx) {
+        constraints.optional.forEach(function (constraint) {
             if (constraint.andyetFasterICE) {
                 self.eliminateDuplicateCandidates = constraint.andyetFasterICE;
             }
@@ -76,7 +76,7 @@ function PeerConnection(config, constraints) {
     // when using a server such as the jitsi videobridge we don't need to signal
     // our candidates
     if (constraints && constraints.optional) {
-        constraints.optional.forEach(function (constraint, idx) {
+        constraints.optional.forEach(function (constraint) {
             if (constraint.andyetDontSignalCandidates) {
                 self.dontSignalCandidates = constraint.andyetDontSignalCandidates;
             }
@@ -87,7 +87,7 @@ function PeerConnection(config, constraints) {
     // EXPERIMENTAL FLAG, might get removed without notice
     this.assumeSetLocalSuccess = false;
     if (constraints && constraints.optional) {
-        constraints.optional.forEach(function (constraint, idx) {
+        constraints.optional.forEach(function (constraint) {
             if (constraint.andyetAssumeSetLocalSuccess) {
                 self.assumeSetLocalSuccess = constraint.andyetAssumeSetLocalSuccess;
             }
@@ -100,7 +100,7 @@ function PeerConnection(config, constraints) {
     if (adapter.webrtcDetectedBrowser === 'firefox') {
         if (constraints && constraints.optional) {
             this.wtFirefox = 0;
-            constraints.optional.forEach(function (constraint, idx) {
+            constraints.optional.forEach(function (constraint) {
                 if (constraint.andyetFirefoxMakesMeSad) {
                     self.wtFirefox = constraint.andyetFirefoxMakesMeSad;
                     if (self.wtFirefox > 0) {
@@ -157,7 +157,7 @@ function PeerConnection(config, constraints) {
     }
 
     if (this.config.debug) {
-        this.on('*', function (eventName, event) {
+        this.on('*', function () {
             var logger = config.logger || console;
             logger.log('PeerConnection event:', arguments);
         });
