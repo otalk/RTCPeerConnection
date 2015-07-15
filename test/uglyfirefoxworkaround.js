@@ -5,6 +5,7 @@ var adapter = require('webrtc-adapter-test');
 
 test('firefox workaround', function (t) {
     var pc1, pc2;
+    var ended = false;
     pc1 = new PeerConnection(null, {
         optional:[
             {
@@ -28,15 +29,19 @@ test('firefox workaround', function (t) {
     });
 
     pc1.on('iceConnectionStateChange', function () {
-        console.log('pc1 iceConnectionStateChange', pc1.iceConnectionState);
-        if (pc1.iceConnectionState == 'connected') {
-            t.pass('P2P connection established');
-            t.end();
+        //console.log('pc1 iceConnectionStateChange', pc1.iceConnectionState);
+        if (pc1.iceConnectionState === 'connected' ||
+          pc1.iceConnectionState === 'completed') {
+            if (!ended) {
+                t.pass('P2P connection established');
+                ended = true;
+                t.end();
+            }
         }
         // FIXME: also look for https://code.google.com/p/webrtc/issues/detail?id=1414
     });
     pc2.on('iceConnectionStateChange', function () {
-        console.log('pc2 iceConnectionStateChange', pc2.iceConnectionState);
+        //console.log('pc2 iceConnectionStateChange', pc2.iceConnectionState);
     });
 
     navigator.mediaDevices.getUserMedia({video: true, fake: true})

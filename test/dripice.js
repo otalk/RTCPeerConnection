@@ -5,6 +5,7 @@ var adapter = require('webrtc-adapter-test');
 
 test('batching trickle ice candidates', function (t) {
     var pc1, pc2;
+    var ended = false;
     pc1 = new PeerConnection({useJingle: true});
     pc2 = new PeerConnection({useJingle:true}, {
         optional:[

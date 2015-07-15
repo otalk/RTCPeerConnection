@@ -7,6 +7,7 @@ var adapter = require('webrtc-adapter-test');
 /*
 test('answer bandwidth restriction', function (t) {
     var pc1, pc2;
+    var ended = false;
     pc1 = new PeerConnection({useJingle:true});
     pc2 = new PeerConnection({useJingle:true}, {optional:[{andyetRestrictBandwidth:512}]});
 
@@ -19,9 +20,13 @@ test('answer bandwidth restriction', function (t) {
 
     pc1.on('iceConnectionStateChange', function () {
         //console.log('pc1 iceConnectionStateChange', pc1.iceConnectionState);
-        if (pc1.iceConnectionState == 'connected') {
-            t.pass('P2P connection established');
-            t.end();
+        if (pc1.iceConnectionState === 'connected' ||
+          pc1.iceConnectionState === 'completed') {
+            if (!ended) {
+                t.pass('P2P connection established');
+                ended = true;
+                t.end();
+            }
         }
         // FIXME: also look for https://code.google.com/p/webrtc/issues/detail?id=1414
     });
