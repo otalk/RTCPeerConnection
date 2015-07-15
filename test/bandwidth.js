@@ -1,16 +1,17 @@
 /* testing basic session establishment */
 var test = require('tape');
 var PeerConnection = require('../rtcpeerconnection');
-var adapter = require('webrtc-adapter-test');
+var adapter = require('webrtc-adapter-test'); // jshint ignore:line
 
 // deactivated until firefox is fixed
-/*
 test('answer bandwidth restriction', function (t) {
     var pc1, pc2;
     var ended = false;
     pc1 = new PeerConnection({useJingle:true});
     pc2 = new PeerConnection({useJingle:true}, {optional:[{andyetRestrictBandwidth:512}]});
+    t.end();
 
+    /*
     pc1.on('ice', function (candidate) {
         pc2.processIce(candidate);
     });
@@ -77,5 +78,5 @@ test('answer bandwidth restriction', function (t) {
             });
         });
     });
+    */
 });
-*/
