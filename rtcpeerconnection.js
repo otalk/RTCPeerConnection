@@ -1,7 +1,6 @@
 var util = require('util');
 var each = require('lodash.foreach');
 var pluck = require('lodash.pluck');
-var webrtc = require('webrtcsupport');
 var SJJ = require('sdp-jingle-json');
 var WildEmitter = require('wildemitter');
 var peerconn = require('traceablepeerconnection');
@@ -19,7 +18,7 @@ function PeerConnection(config, constraints) {
     // EXPERIMENTAL FLAG, might get removed without notice
     this.enableChromeNativeSimulcast = false;
     if (constraints && constraints.optional &&
-            adapter.webrtcDetectedBrowser === 'chrome' && 
+            adapter.webrtcDetectedBrowser === 'chrome' &&
             navigator.appVersion.match(/Chromium\//) === null) {
         constraints.optional.forEach(function (constraint, idx) {
             if (constraint.enableChromeNativeSimulcast) {
