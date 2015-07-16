@@ -7,6 +7,7 @@ var adapter = require('webrtc-adapter-test'); // jshint ignore:line
 test('answer bandwidth restriction', function (t) {
     var pc1, pc2;
     var ended = false;
+    ended = true;
     pc1 = new PeerConnection({useJingle:true});
     pc2 = new PeerConnection({useJingle:true}, {optional:[{andyetRestrictBandwidth:512}]});
     t.end();
