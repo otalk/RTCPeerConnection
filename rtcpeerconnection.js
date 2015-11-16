@@ -813,38 +813,15 @@ PeerConnection.prototype.createDataChannel = function (name, opts) {
     return channel;
 };
 
-// a wrapper around getStats which hides the differences (where possible)
-// TODO: remove in favor of adapter.js shim
 PeerConnection.prototype.getStats = function (cb) {
-    if (adapter.webrtcDetectedBrowser === 'firefox') {
-        this.pc.getStats(
-            function (res) {
-                var items = [];
-                for (var result in res) {
-                    if (typeof res[result] === 'object') {
-                        items.push(res[result]);
-                    }
-                }
-                cb(null, items);
-            },
-            cb
-        );
-    } else {
-        this.pc.getStats(function (res) {
-            var items = [];
-            res.result().forEach(function (result) {
-                var item = {};
-                result.names().forEach(function (name) {
-                    item[name] = result.stat(name);
-                });
-                item.id = result.id;
-                item.type = result.type;
-                item.timestamp = result.timestamp;
-                items.push(item);
-            });
-            cb(null, items);
-        });
-    }
+    this.pc.getStats(null,
+        function (res) {
+            cb(null, res);
+        },
+        function (err) {
+            cb(err);
+        }
+    );
 };
 
 module.exports = PeerConnection;
