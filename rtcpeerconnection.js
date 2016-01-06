@@ -302,10 +302,8 @@ PeerConnection.prototype.offer = function (constraints, cb) {
     var self = this;
     var hasConstraints = arguments.length === 2;
     var mediaConstraints = hasConstraints && constraints ? constraints : {
-            mandatory: {
-                OfferToReceiveAudio: true,
-                OfferToReceiveVideo: true
-            }
+            offerToReceiveAudio: 1,
+            offerToReceiveVideo: 1
         };
     cb = hasConstraints ? cb : constraints;
     cb = cb || function () {};
