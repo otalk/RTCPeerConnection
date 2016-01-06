@@ -3,7 +3,7 @@ var each = require('lodash.foreach');
 var pluck = require('lodash.pluck');
 var SJJ = require('sdp-jingle-json');
 var WildEmitter = require('wildemitter');
-var peerconn = require('traceablepeerconnection');
+var Peerconn = require('traceablepeerconnection');
 var adapter = require('webrtc-adapter-test');
 
 function PeerConnection(config, constraints) {
@@ -112,7 +112,7 @@ function PeerConnection(config, constraints) {
     }
 
 
-    this.pc = new peerconn(config, constraints);
+    this.pc = new Peerconn(config, constraints);
 
     this.getLocalStreams = this.pc.getLocalStreams.bind(this.pc);
     this.getRemoteStreams = this.pc.getRemoteStreams.bind(this.pc);
