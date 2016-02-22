@@ -4,7 +4,7 @@ var pluck = require('lodash.pluck');
 var SJJ = require('sdp-jingle-json');
 var WildEmitter = require('wildemitter');
 var Peerconn = require('traceablepeerconnection');
-var adapter = require('webrtc-adapter-test');
+var adapter = require('webrtc-adapter');
 
 function PeerConnection(config, constraints) {
     var self = this;

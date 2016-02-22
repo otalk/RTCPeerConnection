@@ -1,7 +1,7 @@
 /* testing basic session establishment */
 var test = require('tape');
 var PeerConnection = require('../rtcpeerconnection');
-var adapter = require('webrtc-adapter-test'); // jshint ignore:line
+var adapter = require('webrtc-adapter'); // jshint ignore:line
 
 test('firefox workaround', function (t) {
     var pc1, pc2;
