@@ -56,7 +56,7 @@ test('answer bandwidth restriction', function (t) {
 
                 // check that the remote description contains the bandwidth flag
                 console.log(pc2.remoteDescription.contents);
-                if (!pc2.remoteDescription.contents[1].description.bandwidth) {
+                if (!pc2.remoteDescription.contents[1].application.bandwidth) {
                     t.fail('no bandwidth');
                     return;
                 }

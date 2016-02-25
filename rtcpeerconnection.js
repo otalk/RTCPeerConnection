@@ -384,7 +384,7 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
         if (this.enableChromeNativeSimulcast) {
             offer.jingle.contents.forEach(function (content) {
                 if (content.name === 'video') {
-                    content.description.googConferenceFlag = true;
+                    content.application.googConferenceFlag = true;
                 }
             });
         }
@@ -392,7 +392,7 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
             // add a mixed video stream as first stream
             offer.jingle.contents.forEach(function (content) {
                 if (content.name === 'video') {
-                    var sources = content.description.sources || [];
+                    var sources = content.application.sources || [];
                     if (sources.length === 0 || sources[0].ssrc !== "3735928559") {
                         sources.unshift({
                             ssrc: "3735928559", // 0xdeadbeef
@@ -407,7 +407,7 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
                                 }
                             ]
                         });
-                        content.description.sources = sources;
+                        content.application.sources = sources;
                     }
                 }
             });
@@ -415,9 +415,9 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
         if (self.restrictBandwidth > 0) {
             if (offer.jingle.contents.length >= 2 && offer.jingle.contents[1].name === 'video') {
                 var content = offer.jingle.contents[1];
-                var hasBw = content.description && content.description.bandwidth;
+                var hasBw = content.application && content.application.bandwidth;
                 if (!hasBw) {
-                    offer.jingle.contents[1].description.bandwidth = { type: 'AS', bandwidth: self.restrictBandwidth.toString() };
+                    offer.jingle.contents[1].application.bandwidth = { type: 'AS', bandwidth: self.restrictBandwidth.toString() };
                     offer.sdp = SJJ.toSessionSDP(offer.jingle, {
                         sid: self.config.sdpSessionID,
                         role: self._role(),
@@ -555,18 +555,18 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                     direction: 'outgoing'
                 });
                 if (answer.jingle.contents.length >= 2 && answer.jingle.contents[1].name === 'video') {
-                    var groups = answer.jingle.contents[1].description.sourceGroups || [];
+                    var groups = answer.jingle.contents[1].application.sourceGroups || [];
                     var hasSim = false;
                     groups.forEach(function (group) {
                         if (group.semantics == 'SIM') hasSim = true;
                     });
                     if (!hasSim &&
-                        answer.jingle.contents[1].description.sources.length) {
-                        var newssrc = JSON.parse(JSON.stringify(answer.jingle.contents[1].description.sources[0]));
+                        answer.jingle.contents[1].application.sources.length) {
+                        var newssrc = JSON.parse(JSON.stringify(answer.jingle.contents[1].application.sources[0]));
                         newssrc.ssrc = '' + Math.floor(Math.random() * 0xffffffff); // FIXME: look for conflicts
-                        answer.jingle.contents[1].description.sources.push(newssrc);
+                        answer.jingle.contents[1].application.sources.push(newssrc);
 
-                        sim.push(answer.jingle.contents[1].description.sources[0].ssrc);
+                        sim.push(answer.jingle.contents[1].application.sources[0].ssrc);
                         sim.push(newssrc.ssrc);
                         groups.push({
                             semantics: 'SIM',
@@ -576,13 +576,13 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                         // also create an RTX one for the SIM one
                         var rtxssrc = JSON.parse(JSON.stringify(newssrc));
                         rtxssrc.ssrc = '' + Math.floor(Math.random() * 0xffffffff); // FIXME: look for conflicts
-                        answer.jingle.contents[1].description.sources.push(rtxssrc);
+                        answer.jingle.contents[1].application.sources.push(rtxssrc);
                         groups.push({
                             semantics: 'FID',
                             sources: [newssrc.ssrc, rtxssrc.ssrc]
                         });
 
-                        answer.jingle.contents[1].description.sourceGroups = groups;
+                        answer.jingle.contents[1].application.sourceGroups = groups;
                         answer.sdp = SJJ.toSessionSDP(answer.jingle, {
                             sid: self.config.sdpSessionID,
                             role: self._role(),
@@ -622,7 +622,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                                 direction: 'outgoing'
                             });
                         }
-                        expandedAnswer.jingle.contents[1].description.sources.forEach(function (source, idx) {
+                        expandedAnswer.jingle.contents[1].application.sources.forEach(function (source, idx) {
                             // the floor idx/2 is a hack that relies on a particular order
                             // of groups, alternating between sim and rtx
                             source.parameters = source.parameters.map(function (parameter) {
@@ -749,7 +749,7 @@ PeerConnection.prototype._onIce = function (event) {
                     name: ice.sdpMid,
                     creator: self._role(),
                     transport: {
-                        transType: 'iceUdp',
+                        transportType: 'iceUdp',
                         ufrag: self.config.ice[ice.sdpMid].ufrag,
                         pwd: self.config.ice[ice.sdpMid].pwd,
                         candidates: [
