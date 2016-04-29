@@ -417,7 +417,7 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
         if (self.restrictBandwidth > 0) {
             if (offer.jingle.contents.length >= 2 && offer.jingle.contents[1].name === 'video') {
                 var content = offer.jingle.contents[1];
-                var hasBw = content.application && content.application.bandwidth;
+                var hasBw = content.application && content.application.bandwidth && content.application.bandwidth.bandwidth;
                 if (!hasBw) {
                     offer.jingle.contents[1].application.bandwidth = { type: 'AS', bandwidth: self.restrictBandwidth.toString() };
                     offer.sdp = SJJ.toSessionSDP(offer.jingle, {
