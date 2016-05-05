@@ -243,7 +243,10 @@ PeerConnection.prototype.processIce = function (update, cb) {
 
     // ignore any added ice candidates to avoid errors. why does the
     // spec not do this?
-    if (this.pc.signalingState === 'closed') return cb();
+    if (this.pc.signalingState === 'closed' ||
+            this.pc.signalingState === 'have-local-offer') {
+        return cb();
+    }
 
     if (update.contents || (update.jingle && update.jingle.contents)) {
         var contentNames = pluck(this.remoteDescription.contents, 'name');
