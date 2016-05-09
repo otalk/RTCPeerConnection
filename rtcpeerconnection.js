@@ -393,7 +393,7 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
         if (this.enableMultiStreamHacks) {
             // add a mixed video stream as first stream
             offer.jingle.contents.forEach(function (content) {
-                if (content.name === 'video') {
+                if (content.application.media === 'video') {
                     var sources = content.application.sources || [];
                     if (sources.length === 0 || sources[0].ssrc !== "3735928559") {
                         sources.unshift({
@@ -415,18 +415,15 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
             });
         }
         if (self.restrictBandwidth > 0) {
-            if (offer.jingle.contents.length >= 2 && offer.jingle.contents[1].name === 'video') {
-                var content = offer.jingle.contents[1];
+            offer.jingle.contents.forEach(function (content) {
+                if (content.application && content.application.media !== 'video') {
+                    return;
+                }
                 var hasBw = content.application && content.application.bandwidth && content.application.bandwidth.bandwidth;
                 if (!hasBw) {
-                    offer.jingle.contents[1].application.bandwidth = { type: 'AS', bandwidth: self.restrictBandwidth.toString() };
-                    offer.sdp = SJJ.toSessionSDP(offer.jingle, {
-                        sid: self.config.sdpSessionID,
-                        role: self._role(),
-                        direction: 'outgoing'
-                    });
+                    content.application.bandwidth = { type: 'AS', bandwidth: self.restrictBandwidth.toString() };
                 }
-            }
+            });
         }
         offer.sdp = SJJ.toSessionSDP(offer.jingle, {
             sid: self.config.sdpSessionID,
@@ -549,13 +546,25 @@ PeerConnection.prototype._answer = function (constraints, cb) {
 
     self.pc.createAnswer(
         function (answer) {
+            answer.jingle = SJJ.toSessionJSON(answer.sdp, {
+                role: self._role(),
+                direction: 'outgoing'
+            });
+            if (self.restrictBandwidth > 0) {
+                answer.jingle.contents.forEach(function (content) {
+                    if (content.application && content.application.media !== 'video') {
+                        return;
+                    }
+                    var hasBw = content.application && content.application.bandwidth && content.application.bandwidth.bandwidth;
+                    if (!hasBw) {
+                        content.application.bandwidth = { type: 'AS', bandwidth: self.restrictBandwidth.toString() };
+                    }
+                });
+            }
+
             var sim = [];
             if (self.enableChromeNativeSimulcast) {
                 // native simulcast part 1: add another SSRC
-                answer.jingle = SJJ.toSessionJSON(answer.sdp, {
-                    role: self._role(),
-                    direction: 'outgoing'
-                });
                 if (answer.jingle.contents.length >= 2 && answer.jingle.contents[1].name === 'video') {
                     var groups = answer.jingle.contents[1].application.sourceGroups || [];
                     var hasSim = false;
@@ -597,6 +606,11 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                 type: 'answer',
                 sdp: answer.sdp
             };
+            answer.sdp = SJJ.toSessionSDP(answer.jingle, {
+                sid: self.config.sdpSessionID,
+                role: self._role(),
+                direction: 'outgoing'
+            });
             if (self.assumeSetLocalSuccess) {
                 // not safe to do when doing simulcast mangling
                 self.emit('answer', expandedAnswer);
