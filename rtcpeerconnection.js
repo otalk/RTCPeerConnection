@@ -153,7 +153,7 @@ function PeerConnection(config, constraints) {
     };
 
     this.iceCredentials = {
-        local: {}
+        local: {},
         remote: {}
     };
 
