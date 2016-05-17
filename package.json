@@ -16,7 +16,7 @@
   "author": "Henrik Joreteg <henrik@andyet.net>",
   "license": "MIT",
   "dependencies": {
-    "lodash.foreach": "^3.0.2",
+    "lodash.foreach": "^4.3.0",
     "lodash.pluck": "^3.0.2",
     "sdp-jingle-json": "^3.0.0",
     "traceablepeerconnection": "^1.1.6",
@@ -25,14 +25,16 @@
   },
   "devDependencies": {
     "jshint": "^2.9.1",
-    "browserify": "^10.2.1",
-    "precommit-hook": "1.x",
+    "browserify": "^13.0.1",
+    "precommit-hook": "^3.0",
     "tape": "^4.0.0",
     "travis-multirunner": "^3.0.0",
     "testling": "^1.7.1"
   },
   "scripts": {
-    "test-travis": "test/run-tests"
+    "test-travis": "test/run-tests",
+    "lint": "jshint .",
+    "validate": "npm ls"
   },
   "testling": {
     "files": "test/*.js",
@@ -43,5 +45,10 @@
       "safari/latest",
       "opera/18..latest"
     ]
-  }
+  },
+  "pre-commit": [
+    "lint",
+    "validate",
+    "test"
+  ]
 }
