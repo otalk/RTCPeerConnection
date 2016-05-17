@@ -1,5 +1,4 @@
 var util = require('util');
-var pluck = require('lodash.pluck');
 var SJJ = require('sdp-jingle-json');
 var WildEmitter = require('wildemitter');
 var Peerconn = require('traceablepeerconnection');
@@ -249,7 +248,7 @@ PeerConnection.prototype.processIce = function (update, cb) {
     if (this.pc.signalingState === 'closed') return cb();
 
     if (update.contents || (update.jingle && update.jingle.contents)) {
-        var contentNames = pluck(this.remoteDescription.contents, 'name');
+        var contentNames = this.remoteDescription.contents.map(function (c) { return c.name; });
         var contents = update.contents || update.jingle.contents;
 
         contents.forEach(function (content) {
