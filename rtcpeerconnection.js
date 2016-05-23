@@ -1,5 +1,4 @@
 var util = require('util');
-var each = require('lodash.foreach');
 var pluck = require('lodash.pluck');
 var SJJ = require('sdp-jingle-json');
 var WildEmitter = require('wildemitter');
@@ -379,7 +378,7 @@ PeerConnection.prototype.offer = function (constraints, cb) {
                         self.localDescription = jingle;
 
                         // Save ICE credentials
-                        each(jingle.contents, function (content) {
+                        jingle.contents.forEach(function (content) {
                             var transport = content.transport || {};
                             if (transport.ufrag) {
                                 self.iceCredentials.local[content.name] = {
@@ -471,7 +470,7 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
             }
         }
         // Save ICE credentials
-        each(offer.jingle.contents, function (content) {
+        offer.jingle.contents.forEach(function (content) {
             var transport = content.transport || {};
             if (transport.ufrag) {
                 self.iceCredentials.remote[content.name] = {
@@ -549,7 +548,7 @@ PeerConnection.prototype.handleAnswer = function (answer, cb) {
         self.remoteDescription = answer.jingle;
 
         // Save ICE credentials
-        each(answer.jingle.contents, function (content) {
+        answer.jingle.contents.forEach(function (content) {
             var transport = content.transport || {};
             if (transport.ufrag) {
                 self.iceCredentials.remote[content.name] = {
@@ -799,7 +798,7 @@ PeerConnection.prototype._onIce = function (event) {
                     role: self._role(),
                     direction: 'outgoing'
                 });
-                each(jingle.contents, function (content) {
+                jingle.contents.forEach(function (content) {
                     var transport = content.transport || {};
                     if (transport.ufrag) {
                         self.iceCredentials.local[content.name] = {
