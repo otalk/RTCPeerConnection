@@ -3,6 +3,7 @@ var SJJ = require('sdp-jingle-json');
 var WildEmitter = require('wildemitter');
 var Peerconn = require('traceablepeerconnection');
 var adapter = require('webrtc-adapter');
+var cloneDeep = require('lodash.clonedeep');
 
 function PeerConnection(config, constraints) {
     var self = this;
@@ -660,8 +661,9 @@ PeerConnection.prototype._answer = function (constraints, cb) {
             };
             if (self.assumeSetLocalSuccess) {
                 // not safe to do when doing simulcast mangling
-                self.emit('answer', expandedAnswer);
-                cb(null, expandedAnswer);
+                var copy = cloneDeep(expandedAnswer);
+                self.emit('answer', copy);
+                cb(null, copy);
             }
             self._candidateBuffer = [];
             self.pc.setLocalDescription(answer,
@@ -707,8 +709,9 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                         }
                     });
                     if (!self.assumeSetLocalSuccess) {
-                        self.emit('answer', expandedAnswer);
-                        cb(null, expandedAnswer);
+                        var copy = cloneDeep(expandedAnswer);
+                        self.emit('answer', copy);
+                        cb(null, copy);
                     }
                 },
                 function (err) {
