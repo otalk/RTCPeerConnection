@@ -16,6 +16,7 @@
   "author": "Henrik Joreteg <henrik@andyet.net>",
   "license": "MIT",
   "dependencies": {
+    "lodash.clonedeep": "^4.3.2",
     "sdp-jingle-json": "^3.0.0",
     "traceablepeerconnection": "^1.1.6",
     "webrtc-adapter": "^1.0",
