@@ -1,7 +1,6 @@
 var util = require('util');
 var SJJ = require('sdp-jingle-json');
 var WildEmitter = require('wildemitter');
-var Peerconn = require('traceablepeerconnection');
 var adapter = require('webrtc-adapter');
 var cloneDeep = require('lodash.clonedeep');
 
@@ -113,17 +112,12 @@ function PeerConnection(config, constraints) {
     }
 
 
-    this.pc = new Peerconn(config, constraints);
+    this.pc = new RTCPeerConnection(config, constraints);
 
     this.getLocalStreams = this.pc.getLocalStreams.bind(this.pc);
     this.getRemoteStreams = this.pc.getRemoteStreams.bind(this.pc);
     this.addStream = this.pc.addStream.bind(this.pc);
     this.removeStream = this.pc.removeStream.bind(this.pc);
-
-    // proxy events
-    this.pc.on('*', function () {
-        self.emit.apply(self, arguments);
-    });
 
     // proxy some events directly
     this.pc.onremovestream = this.emit.bind(this, 'removeStream');
