@@ -885,15 +885,17 @@ PeerConnection.prototype.createDataChannel = function (name, opts) {
     return channel;
 };
 
-PeerConnection.prototype.getStats = function (cb) {
-    this.pc.getStats(null,
-        function (res) {
+PeerConnection.prototype.getStats = function () {
+    if (typeof arguments[0] === 'function') {
+        var cb = arguments[0];
+        this.pc.getStats().then(function (res) {
             cb(null, res);
-        },
-        function (err) {
+        }, function (err) {
             cb(err);
-        }
-    );
+        });
+    } else {
+        return this.pc.getStats.apply(this.pc, arguments);
+    }
 };
 
 module.exports = PeerConnection;
