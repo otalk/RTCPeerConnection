@@ -117,10 +117,24 @@ function PeerConnection(config, constraints) {
     this.getLocalStreams = this.pc.getLocalStreams.bind(this.pc);
     this.getRemoteStreams = this.pc.getRemoteStreams.bind(this.pc);
     this.addStream = this.pc.addStream.bind(this.pc);
-    this.removeStream = this.pc.removeStream.bind(this.pc);
+
+    this.removeStream = function (stream) {
+        if (typeof self.pc.removeStream === 'function') {
+            self.pc.removeStream.apply(self.pc, arguments);
+        } else if (typeof self.pc.removeTrack === 'function') {
+            stream.getTracks().forEach(function (track) {
+                self.pc.removeTrack(track);
+            });
+        }
+    };
+
+    if (typeof this.pc.removeTrack === 'function') {
+        this.removeTrack = this.pc.removeTrack.bind(this.pc);
+    }
 
     // proxy some events directly
     this.pc.onremovestream = this.emit.bind(this, 'removeStream');
+    this.pc.onremovetrack = this.emit.bind(this, 'removeTrack');
     this.pc.onaddstream = this.emit.bind(this, 'addStream');
     this.pc.onnegotiationneeded = this.emit.bind(this, 'negotiationNeeded');
     this.pc.oniceconnectionstatechange = this.emit.bind(this, 'iceConnectionStateChange');
