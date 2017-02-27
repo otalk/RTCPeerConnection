@@ -18,7 +18,7 @@
   "dependencies": {
     "lodash.clonedeep": "^4.3.2",
     "sdp-jingle-json": "^3.0.0",
-    "webrtc-adapter": "^2.0.2",
+    "webrtc-adapter": "^3.1.0",
     "wildemitter": "1.x"
   },
   "devDependencies": {
