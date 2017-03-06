@@ -114,7 +114,14 @@ function PeerConnection(config, constraints) {
 
     this.pc = new RTCPeerConnection(config, constraints);
 
-    this.getLocalStreams = this.pc.getLocalStreams.bind(this.pc);
+    if (typeof this.pc.getLocalStreams === 'function') {
+        this.getLocalStreams = this.pc.getLocalStreams.bind(this.pc);
+    } else {
+        this.getLocalStreams = function () {
+            return [];
+        };
+    }
+
     this.getRemoteStreams = this.pc.getRemoteStreams.bind(this.pc);
     this.addStream = this.pc.addStream.bind(this.pc);
 
