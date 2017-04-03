@@ -281,7 +281,7 @@ PeerConnection.prototype.processIce = function (update, cb) {
             var processCandidates = function () {
                 candidates.forEach(
                     function (candidate) {
-                    var iceCandidate = SJJ.toCandidateSDP(candidate) + '\r\n';
+                    var iceCandidate = SJJ.toCandidateSDP(candidate);
                     self.pc.addIceCandidate(
                         new RTCIceCandidate({
                             candidate: iceCandidate,
