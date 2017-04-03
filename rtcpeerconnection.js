@@ -261,7 +261,26 @@ PeerConnection.prototype.processIce = function (update, cb) {
 
     // ignore any added ice candidates to avoid errors. why does the
     // spec not do this?
-    if (this.pc.signalingState === 'closed') return cb();
+    if (this.pc.signalingState === 'closed') {
+        return cb();
+    }
+
+    var earlyIceUpdates = this.earlyIceUpdates || [];
+    var logger = this.config.logger || console;
+
+    if (this.pc.signalingState === 'have-local-offer') {
+        earlyIceUpdates.push(update);
+
+        logger.log('Caching early ICE update', update);
+        return cb();
+    } else {
+        earlyIceUpdates.forEach(function (u) {
+            this.processIce(u, function () {
+                logger.log('Processed early ICE update', u);
+            });
+        });
+        this.earlyIceUpdates = [];
+    }
 
     if (update.contents || (update.jingle && update.jingle.contents)) {
         var contentNames = this.remoteDescription.contents.map(function (c) { return c.name; });
