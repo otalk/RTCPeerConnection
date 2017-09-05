@@ -125,7 +125,9 @@ function PeerConnection(config, constraints) {
         };
     }
 
-    this.addStream = this.pc.addStream.bind(this.pc);
+    if (typeof this.pc.addStream === 'function') {
+        this.addStream = this.pc.addStream.bind(this.pc);
+    }
 
     this.removeStream = function (stream) {
         if (typeof self.pc.removeStream === 'function') {
