@@ -109,16 +109,18 @@ function PeerConnection(config, constraints) {
 
     this.pc = new RTCPeerConnection(config, constraints);
 
-    if (typeof this.pc.getLocalStreams === 'function') {
-        this.getLocalStreams = this.pc.getLocalStreams.bind(this.pc);
+    if (typeof this.pc.getLocalStreams === 'function' ||
+      (this.pc.getLocalStreams && this.pc.getLocalStreams.call)) {
+      this.getLocalStreams = this.pc.getLocalStreams.bind(this.pc);
     } else {
         this.getLocalStreams = function () {
             return [];
         };
     }
 
-    if (typeof this.pc.getRemoteStreams === 'function') {
-        this.getRemoteStreams = this.pc.getRemoteStreams.bind(this.pc);
+    if (typeof this.pc.getRemoteStreams === 'function' ||
+      (this.pc.getRemoteStreams && this.pc.getRemoteStreams.call)) {
+      this.getRemoteStreams = this.pc.getRemoteStreams.bind(this.pc);
     } else {
         this.getRemoteStreams = function () {
             return [];
@@ -128,16 +130,19 @@ function PeerConnection(config, constraints) {
     this.addStream = this.pc.addStream.bind(this.pc);
 
     this.removeStream = function (stream) {
-        if (typeof self.pc.removeStream === 'function') {
+        if (typeof self.pc.removeStream === 'function' ||
+          (self.pc.removeStream && self.pc.removeStream.call)) {
             self.pc.removeStream.apply(self.pc, arguments);
-        } else if (typeof self.pc.removeTrack === 'function') {
+        } else if (typeof self.pc.removeTrack === 'function' ||
+          (self.pc.removeTrack && self.pc.removeTrack.call)) {
             stream.getTracks().forEach(function (track) {
                 self.pc.removeTrack(track);
             });
         }
     };
 
-    if (typeof this.pc.removeTrack === 'function') {
+    if (typeof this.pc.removeTrack === 'function' ||
+      (this.pc.removeTrack && this.pc.removeTrack.call)) {
         this.removeTrack = this.pc.removeTrack.bind(this.pc);
     }
 
