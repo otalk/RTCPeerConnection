@@ -28,8 +28,8 @@
     "precommit-hook": "^3.0",
     "tape": "^4.0.0",
     "testling": "^1.7.1",
-    "travis-multirunner": "^3.0.0",
-    "webrtc-adapter": "^3.4.3"
+    "travis-multirunner": "^3.3.0",
+    "webrtc-adapter": "^6.0.2"
   },
   "scripts": {
     "test-travis": "test/run-tests",

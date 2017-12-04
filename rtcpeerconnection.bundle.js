@@ -3734,10 +3734,26 @@ function PeerConnection(config, constraints) {
         };
     }
 
+    if (typeof this.pc.getSenders === 'function') {
+        this.getSenders = this.pc.getSenders.bind(this.pc);
+    } else {
+        this.getSenders = function () {
+            return [];
+        };
+    }
+
     if (typeof this.pc.getRemoteStreams === 'function') {
         this.getRemoteStreams = this.pc.getRemoteStreams.bind(this.pc);
     } else {
         this.getRemoteStreams = function () {
+            return [];
+        };
+    }
+
+    if (typeof this.pc.getReceivers === 'function') {
+        this.getReceivers = this.pc.getReceivers.bind(this.pc);
+    } else {
+        this.getReceivers = function () {
             return [];
         };
     }
