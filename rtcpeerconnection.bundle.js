@@ -4027,7 +4027,7 @@ PeerConnection.prototype.offer = function (constraints, cb) {
 
                 expandedOffer.jingle = jingle;
             }
-            expandedOffer.sdp.split('\r\n').forEach(function (line) {
+            expandedOffer.sdp.split(/\r?\n/).forEach(function (line) {
                 if (line.indexOf('a=candidate:') === 0) {
                     self._checkLocalCandidate(line);
                 }
@@ -4113,7 +4113,7 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
         });
         self.remoteDescription = offer.jingle;
     }
-    offer.sdp.split('\r\n').forEach(function (line) {
+    offer.sdp.split(/\r?\n/).forEach(function (line) {
         if (line.indexOf('a=candidate:') === 0) {
             self._checkRemoteCandidate(line);
         }
@@ -4182,7 +4182,7 @@ PeerConnection.prototype.handleAnswer = function (answer, cb) {
             }
         });
     }
-    answer.sdp.split('\r\n').forEach(function (line) {
+    answer.sdp.split(/\r?\n/).forEach(function (line) {
         if (line.indexOf('a=candidate:') === 0) {
             self._checkRemoteCandidate(line);
         }
@@ -4316,7 +4316,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                     direction: 'outgoing'
                 });
             }
-            expandedAnswer.sdp.split('\r\n').forEach(function (line) {
+            expandedAnswer.sdp.split(/\r?\n/).forEach(function (line) {
                 if (line.indexOf('a=candidate:') === 0) {
                     self._checkLocalCandidate(line);
                 }
