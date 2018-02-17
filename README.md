@@ -99,11 +99,10 @@ pc.offer(function (err, offer) {
 
 // you can also optionally pass in constraints
 // when creating an offer.
-pc.offer({
-        mandatory: {
-            OfferToReceiveAudio: true,
-            OfferToReceiveVideo: false
-        }
+pc.offer(
+    {
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: false
     }, 
     function (err, offer) {
         if (!err) connection.send('offer', offer);
