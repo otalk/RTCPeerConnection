@@ -161,6 +161,7 @@ function PeerConnection(config, constraints) {
     this.pc.onremovestream = this.emit.bind(this, 'removeStream');
     this.pc.onremovetrack = this.emit.bind(this, 'removeTrack');
     this.pc.onaddstream = this.emit.bind(this, 'addStream');
+    this.pc.onaddtrack = this.emit.bind(this, 'addTrack');
     this.pc.onnegotiationneeded = this.emit.bind(this, 'negotiationNeeded');
     this.pc.oniceconnectionstatechange = this.emit.bind(this, 'iceConnectionStateChange');
     this.pc.onsignalingstatechange = this.emit.bind(this, 'signalingStateChange');
