@@ -109,8 +109,7 @@ function PeerConnection(config, constraints) {
 
     this.pc = new RTCPeerConnection(config, constraints);
 
-    if (typeof this.pc.getLocalStreams === 'function' ||
-      (this.pc.getLocalStreams && this.pc.getLocalStreams.call)) {
+    if (isFunction(this.pc.getLocalStreams)) {
       this.getLocalStreams = this.pc.getLocalStreams.bind(this.pc);
     } else {
         this.getLocalStreams = function () {
@@ -118,7 +117,7 @@ function PeerConnection(config, constraints) {
         };
     }
     
-    if (typeof this.pc.getSenders === 'function') {
+    if (isFunction(this.pc.getSenders)) {
         this.getSenders = this.pc.getSenders.bind(this.pc);
     } else {
         this.getSenders = function () {
@@ -126,8 +125,7 @@ function PeerConnection(config, constraints) {
         };
     }
 
-    if (typeof this.pc.getRemoteStreams === 'function' ||
-      (this.pc.getRemoteStreams && this.pc.getRemoteStreams.call)) {
+    if (isFunction(this.pc.getRemoteStreams)) {
       this.getRemoteStreams = this.pc.getRemoteStreams.bind(this.pc);
     } else {
         this.getRemoteStreams = function () {
@@ -135,7 +133,7 @@ function PeerConnection(config, constraints) {
         };
     }
 
-    if (typeof this.pc.getReceivers === 'function') {
+    if (isFunction(this.pc.getReceivers)) {
         this.getReceivers = this.pc.getReceivers.bind(this.pc);
     } else {
         this.getReceivers = function () {
@@ -146,19 +144,16 @@ function PeerConnection(config, constraints) {
     this.addStream = this.pc.addStream.bind(this.pc);
 
     this.removeStream = function (stream) {
-        if (typeof self.pc.removeStream === 'function' ||
-          (self.pc.removeStream && self.pc.removeStream.call)) {
+        if (isFunction(self.pc.removeStream)) {
             self.pc.removeStream.apply(self.pc, arguments);
-        } else if (typeof self.pc.removeTrack === 'function' ||
-          (self.pc.removeTrack && self.pc.removeTrack.call)) {
+        } else if (isFunction(self.pc.removeTrack)) {
             stream.getTracks().forEach(function (track) {
                 self.pc.removeTrack(track);
             });
         }
     };
 
-    if (typeof this.pc.removeTrack === 'function' ||
-      (this.pc.removeTrack && this.pc.removeTrack.call)) {
+    if (isFunction(this.pc.removeTrack)) {
         this.removeTrack = this.pc.removeTrack.bind(this.pc);
     }
 
@@ -206,6 +201,7 @@ function PeerConnection(config, constraints) {
             logger.log('PeerConnection event:', arguments);
         });
     }
+
     this.hadLocalStunCandidate = false;
     this.hadRemoteStunCandidate = false;
     this.hadLocalRelayCandidate = false;
@@ -224,6 +220,11 @@ function PeerConnection(config, constraints) {
     this._localDataChannels = [];
 
     this._candidateBuffer = [];
+
+    // includes consideration for ActiveX/NPAPI methods (for Temasys support)
+    function isFunction(val) {
+        return typeof val === 'function' || !!(val && val.call);
+    }
 }
 
 util.inherits(PeerConnection, WildEmitter);
@@ -233,6 +234,7 @@ Object.defineProperty(PeerConnection.prototype, 'signalingState', {
         return this.pc.signalingState;
     }
 });
+
 Object.defineProperty(PeerConnection.prototype, 'iceConnectionState', {
     get: function () {
         return this.pc.iceConnectionState;
@@ -276,7 +278,6 @@ PeerConnection.prototype._checkRemoteCandidate = function (candidate) {
         this.hadRemoteIPv6Candidate = true;
     }
 };
-
 
 // Init and add ice candidate object with correct constructor
 PeerConnection.prototype.processIce = function (update, cb) {
@@ -453,7 +454,6 @@ PeerConnection.prototype.offer = function (constraints, cb) {
         mediaConstraints
     );
 };
-
 
 // Process an incoming offer so that ICE may proceed before deciding
 // to answer the request.
