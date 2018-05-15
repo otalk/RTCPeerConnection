@@ -3632,7 +3632,7 @@ function PeerConnection(config, constraints) {
     config.iceServers = config.iceServers || [];
 
     // includes consideration for ActiveX/NPAPI methods (for Temasys support)
-    function isFunction(val) {
+    function isCallable(val) {
         return typeof val === 'function' || !!(val && val.call);
     }
 
@@ -3731,7 +3731,7 @@ function PeerConnection(config, constraints) {
 
     this.pc = new RTCPeerConnection(config, constraints);
 
-    if (isFunction(this.pc.getLocalStreams)) {
+    if (isCallable(this.pc.getLocalStreams)) {
         this.getLocalStreams = this.pc.getLocalStreams.bind(this.pc);
     } else {
         this.getLocalStreams = function () {
@@ -3739,7 +3739,7 @@ function PeerConnection(config, constraints) {
         };
     }
 
-    if (isFunction(this.pc.getSenders)) {
+    if (isCallable(this.pc.getSenders)) {
         this.getSenders = this.pc.getSenders.bind(this.pc);
     } else {
         this.getSenders = function () {
@@ -3747,7 +3747,7 @@ function PeerConnection(config, constraints) {
         };
     }
 
-    if (isFunction(this.pc.getRemoteStreams)) {
+    if (isCallable(this.pc.getRemoteStreams)) {
         this.getRemoteStreams = this.pc.getRemoteStreams.bind(this.pc);
     } else {
         this.getRemoteStreams = function () {
@@ -3755,7 +3755,7 @@ function PeerConnection(config, constraints) {
         };
     }
 
-    if (isFunction(this.pc.getReceivers)) {
+    if (isCallable(this.pc.getReceivers)) {
         this.getReceivers = this.pc.getReceivers.bind(this.pc);
     } else {
         this.getReceivers = function () {
@@ -3766,16 +3766,16 @@ function PeerConnection(config, constraints) {
     this.addStream = this.pc.addStream.bind(this.pc);
 
     this.removeStream = function (stream) {
-        if (isFunction(self.pc.removeStream)) {
+        if (isCallable(self.pc.removeStream)) {
             self.pc.removeStream.apply(self.pc, arguments);
-        } else if (isFunction(self.pc.removeTrack)) {
+        } else if (isCallable(self.pc.removeTrack)) {
             stream.getTracks().forEach(function (track) {
                 self.pc.removeTrack(track);
             });
         }
     };
 
-    if (isFunction(this.pc.removeTrack)) {
+    if (isCallable(this.pc.removeTrack)) {
         this.removeTrack = this.pc.removeTrack.bind(this.pc);
     }
 
