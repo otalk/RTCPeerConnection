@@ -11,6 +11,11 @@ function PeerConnection(config, constraints) {
     config = config || {};
     config.iceServers = config.iceServers || [];
 
+    // includes consideration for ActiveX/NPAPI methods (for Temasys support)
+    function isFunction(val) {
+        return typeof val === 'function' || !!(val && val.call);
+    }
+
     // make sure this only gets enabled in Google Chrome
     // EXPERIMENTAL FLAG, might get removed without notice
     this.enableChromeNativeSimulcast = false;
@@ -220,11 +225,6 @@ function PeerConnection(config, constraints) {
     this._localDataChannels = [];
 
     this._candidateBuffer = [];
-
-    // includes consideration for ActiveX/NPAPI methods (for Temasys support)
-    function isFunction(val) {
-        return typeof val === 'function' || !!(val && val.call);
-    }
 }
 
 util.inherits(PeerConnection, WildEmitter);
