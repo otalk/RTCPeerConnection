@@ -241,7 +241,14 @@ PeerConnection.prototype._role = function () {
 // Add a stream to the peer connection object
 PeerConnection.prototype.addStream = function (stream) {
     this.localStream = stream;
-    this.pc.addStream(stream);
+    stream.getTracks().forEach(
+        function(track) {
+            this.pc.addTrack(
+                track,
+                stream
+            );
+        }
+    );
 };
 
 // helper function to check if a remote candidate is a stun/relay
@@ -306,9 +313,11 @@ PeerConnection.prototype.processIce = function (update, cb) {
                             candidate: iceCandidate,
                             sdpMLineIndex: mline,
                             sdpMid: mid
-                        }), function () {
-                            // well, this success callback is pretty meaningless
-                        },
+                        })
+                    ).then(
+                        function () {
+                                // well, this success callback is pretty meaningless
+                            },
                         function (err) {
                             self.emit('error', err);
                         }
@@ -332,7 +341,9 @@ PeerConnection.prototype.processIce = function (update, cb) {
                         role: self._role(),
                         direction: 'incoming'
                     });
-                    self.pc.setRemoteDescription(new RTCSessionDescription(offer),
+                    self.pc.setRemoteDescription(
+                        new RTCSessionDescription(offer)
+                    ).then(
                         function () {
                             processCandidates();
                         },
@@ -362,7 +373,8 @@ PeerConnection.prototype.processIce = function (update, cb) {
         }
 
         self.pc.addIceCandidate(
-            new RTCIceCandidate(update.candidate),
+            new RTCIceCandidate(update.candidate)
+        ).then(
             function () { },
             function (err) {
                 self.emit('error', err);
@@ -388,6 +400,8 @@ PeerConnection.prototype.offer = function (constraints, cb) {
 
     // Actually generate the offer
     this.pc.createOffer(
+        mediaConstraints
+    ).then(
         function (offer) {
             // does not work for jingle, but jingle.js doesn't need
             // this hack...
@@ -400,7 +414,7 @@ PeerConnection.prototype.offer = function (constraints, cb) {
                 cb(null, expandedOffer);
             }
             self._candidateBuffer = [];
-            self.pc.setLocalDescription(offer,
+            self.pc.setLocalDescription(offer).then(
                 function () {
                     var jingle;
                     if (self.config.useJingle) {
@@ -444,8 +458,7 @@ PeerConnection.prototype.offer = function (constraints, cb) {
         function (err) {
             self.emit('error', err);
             cb(err);
-        },
-        mediaConstraints
+        }
     );
 };
 
@@ -525,7 +538,9 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
             self._checkRemoteCandidate(line);
         }
     });
-    self.pc.setRemoteDescription(new RTCSessionDescription(offer),
+    self.pc.setRemoteDescription(
+        new RTCSessionDescription(offer)
+    ).then(
         function () {
             cb();
         },
@@ -598,14 +613,16 @@ PeerConnection.prototype.handleAnswer = function (answer, cb) {
         }
     });
     self.pc.setRemoteDescription(
-        new RTCSessionDescription(answer),
+        new RTCSessionDescription(answer)
+    ).then(
         function () {
             if (self.wtFirefox) {
                 window.setTimeout(function () {
                     self.firefoxcandidatebuffer.forEach(function (candidate) {
                         // add candidates later
                         self.pc.addIceCandidate(
-                            new RTCIceCandidate(candidate),
+                            new RTCIceCandidate(candidate)
+                        ).then(
                             function () { },
                             function (err) {
                                 self.emit('error', err);
@@ -644,6 +661,8 @@ PeerConnection.prototype._answer = function (constraints, cb) {
     if (this.pc.signalingState === 'closed') return cb('Already closed');
 
     self.pc.createAnswer(
+        constraints
+    ).then(
         function (answer) {
             var sim = [];
             if (self.enableChromeNativeSimulcast) {
@@ -700,7 +719,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
                 cb(null, copy);
             }
             self._candidateBuffer = [];
-            self.pc.setLocalDescription(answer,
+            self.pc.setLocalDescription(answer).then(
                 function () {
                     if (self.config.useJingle) {
                         var jingle = SJJ.toSessionJSON(answer.sdp, {
@@ -757,8 +776,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
         function (err) {
             self.emit('error', err);
             cb(err);
-        },
-        constraints
+        }
     );
 };
 
