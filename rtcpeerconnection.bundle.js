@@ -1,4 +1,29 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.PeerConnection = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+if (typeof Object.create === 'function') {
+  // implementation from standard node.js 'util' module
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    ctor.prototype = Object.create(superCtor.prototype, {
+      constructor: {
+        value: ctor,
+        enumerable: false,
+        writable: true,
+        configurable: true
+      }
+    });
+  };
+} else {
+  // old school shim for old browsers
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    var TempCtor = function () {}
+    TempCtor.prototype = superCtor.prototype
+    ctor.prototype = new TempCtor()
+    ctor.prototype.constructor = ctor
+  }
+}
+
+},{}],2:[function(require,module,exports){
 (function (global){
 /**
  * lodash (Custom Build) <https://lodash.com/>
@@ -1750,7 +1775,7 @@ function stubFalse() {
 module.exports = cloneDeep;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],2:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -1936,7 +1961,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 var toSDP = require('./lib/tosdp');
 var toJSON = require('./lib/tojson');
 
@@ -2058,7 +2083,7 @@ exports.toCandidateJSON = toJSON.toCandidateJSON;
 exports.toMediaJSON = toJSON.toMediaJSON;
 exports.toSessionJSON = toJSON.toSessionJSON;
 
-},{"./lib/tojson":6,"./lib/tosdp":7}],4:[function(require,module,exports){
+},{"./lib/tojson":7,"./lib/tosdp":8}],5:[function(require,module,exports){
 exports.lines = function (sdp) {
     return sdp.split(/\r?\n/).filter(function (line) {
         return line.length > 0;
@@ -2329,7 +2354,7 @@ exports.msid = function (line) {
     };
 };
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 module.exports = {
     initiator: {
         incoming: {
@@ -2377,7 +2402,7 @@ module.exports = {
     }
 };
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 var SENDERS = require('./senders');
 var parsers = require('./parsers');
 var idCounter = Math.random();
@@ -2601,7 +2626,7 @@ exports.toCandidateJSON = function (line) {
     return candidate;
 };
 
-},{"./parsers":4,"./senders":5}],7:[function(require,module,exports){
+},{"./parsers":5,"./senders":6}],8:[function(require,module,exports){
 var SENDERS = require('./senders');
 
 
@@ -2720,11 +2745,18 @@ exports.toMediaSDP = function (content, opts) {
     sdp.push('a=mid:' + content.name);
 
     if (desc.sources && desc.sources.length) {
-        (desc.sources[0].parameters || []).forEach(function (param) {
-            if (param.key === 'msid') {
-                sdp.push('a=msid:' + param.value);
-            }
+        var streams = {};
+        desc.sources.forEach(function (source) {
+            (source.parameters || []).forEach(function (param) {
+                if (param.key === 'msid') {
+                    streams[param.value] = 1;
+                }
+            });
         });
+        streams = Object.keys(streams);
+        if (streams.length === 1) {
+            sdp.push('a=msid:' + streams[0]);
+        }
     }
 
     if (desc.mux) {
@@ -2840,32 +2872,7 @@ exports.toCandidateSDP = function (candidate) {
     return 'a=candidate:' + sdp.join(' ');
 };
 
-},{"./senders":5}],8:[function(require,module,exports){
-if (typeof Object.create === 'function') {
-  // implementation from standard node.js 'util' module
-  module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    ctor.prototype = Object.create(superCtor.prototype, {
-      constructor: {
-        value: ctor,
-        enumerable: false,
-        writable: true,
-        configurable: true
-      }
-    });
-  };
-} else {
-  // old school shim for old browsers
-  module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    var TempCtor = function () {}
-    TempCtor.prototype = superCtor.prototype
-    ctor.prototype = new TempCtor()
-    ctor.prototype.constructor = ctor
-  }
-}
-
-},{}],9:[function(require,module,exports){
+},{"./senders":6}],9:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
@@ -3462,7 +3469,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":9,"_process":2,"inherits":8}],11:[function(require,module,exports){
+},{"./support/isBuffer":9,"_process":3,"inherits":1}],11:[function(require,module,exports){
 /*
 WildEmitter.js is a slim little event emitter by @henrikjoreteg largely based
 on @visionmedia's Emitter from UI Kit.
@@ -3858,7 +3865,9 @@ PeerConnection.prototype._role = function () {
 // Add a stream to the peer connection object
 PeerConnection.prototype.addStream = function (stream) {
     this.localStream = stream;
-    this.pc.addStream(stream);
+    stream.getTracks().forEach(function (track) {
+        this.pc.addTrack(track, stream);
+    });
 };
 
 // helper function to check if a remote candidate is a stun/relay
@@ -3922,7 +3931,7 @@ PeerConnection.prototype.processIce = function (update, cb) {
                         candidate: iceCandidate,
                         sdpMLineIndex: mline,
                         sdpMid: mid
-                    }), function () {
+                    })).then(function () {
                         // well, this success callback is pretty meaningless
                     }, function (err) {
                         self.emit('error', err);
@@ -3945,7 +3954,7 @@ PeerConnection.prototype.processIce = function (update, cb) {
                         role: self._role(),
                         direction: 'incoming'
                     });
-                    self.pc.setRemoteDescription(new RTCSessionDescription(offer), function () {
+                    self.pc.setRemoteDescription(new RTCSessionDescription(offer)).then(function () {
                         processCandidates();
                     }, function (err) {
                         self.emit('error', err);
@@ -3971,7 +3980,7 @@ PeerConnection.prototype.processIce = function (update, cb) {
             }
         }
 
-        self.pc.addIceCandidate(new RTCIceCandidate(update.candidate), function () {}, function (err) {
+        self.pc.addIceCandidate(new RTCIceCandidate(update.candidate)).then(function () {}, function (err) {
             self.emit('error', err);
         });
         self._checkRemoteCandidate(update.candidate.candidate);
@@ -3993,7 +4002,7 @@ PeerConnection.prototype.offer = function (constraints, cb) {
     if (this.pc.signalingState === 'closed') return cb('Already closed');
 
     // Actually generate the offer
-    this.pc.createOffer(function (offer) {
+    this.pc.createOffer(mediaConstraints).then(function (offer) {
         // does not work for jingle, but jingle.js doesn't need
         // this hack...
         var expandedOffer = {
@@ -4005,7 +4014,7 @@ PeerConnection.prototype.offer = function (constraints, cb) {
             cb(null, expandedOffer);
         }
         self._candidateBuffer = [];
-        self.pc.setLocalDescription(offer, function () {
+        self.pc.setLocalDescription(offer).then(function () {
             var jingle;
             if (self.config.useJingle) {
                 jingle = SJJ.toSessionJSON(offer.sdp, {
@@ -4045,7 +4054,7 @@ PeerConnection.prototype.offer = function (constraints, cb) {
     }, function (err) {
         self.emit('error', err);
         cb(err);
-    }, mediaConstraints);
+    });
 };
 
 // Process an incoming offer so that ICE may proceed before deciding
@@ -4119,7 +4128,7 @@ PeerConnection.prototype.handleOffer = function (offer, cb) {
             self._checkRemoteCandidate(line);
         }
     });
-    self.pc.setRemoteDescription(new RTCSessionDescription(offer), function () {
+    self.pc.setRemoteDescription(new RTCSessionDescription(offer)).then(function () {
         cb();
     }, cb);
 };
@@ -4188,12 +4197,12 @@ PeerConnection.prototype.handleAnswer = function (answer, cb) {
             self._checkRemoteCandidate(line);
         }
     });
-    self.pc.setRemoteDescription(new RTCSessionDescription(answer), function () {
+    self.pc.setRemoteDescription(new RTCSessionDescription(answer)).then(function () {
         if (self.wtFirefox) {
             window.setTimeout(function () {
                 self.firefoxcandidatebuffer.forEach(function (candidate) {
                     // add candidates later
-                    self.pc.addIceCandidate(new RTCIceCandidate(candidate), function () {}, function (err) {
+                    self.pc.addIceCandidate(new RTCIceCandidate(candidate)).then(function () {}, function (err) {
                         self.emit('error', err);
                     });
                     self._checkRemoteCandidate(candidate.candidate);
@@ -4226,7 +4235,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
 
     if (this.pc.signalingState === 'closed') return cb('Already closed');
 
-    self.pc.createAnswer(function (answer) {
+    self.pc.createAnswer(constraints).then(function (answer) {
         var sim = [];
         if (self.enableChromeNativeSimulcast) {
             // native simulcast part 1: add another SSRC
@@ -4281,7 +4290,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
             cb(null, copy);
         }
         self._candidateBuffer = [];
-        self.pc.setLocalDescription(answer, function () {
+        self.pc.setLocalDescription(answer).then(function () {
             if (self.config.useJingle) {
                 var jingle = SJJ.toSessionJSON(answer.sdp, {
                     role: self._role(),
@@ -4334,7 +4343,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
     }, function (err) {
         self.emit('error', err);
         cb(err);
-    }, constraints);
+    });
 };
 
 // Internal method for emitting ice candidates on our peer object
@@ -4495,5 +4504,5 @@ PeerConnection.prototype.getStats = function () {
 
 module.exports = PeerConnection;
 
-},{"lodash.clonedeep":1,"sdp-jingle-json":3,"util":10,"wildemitter":11}]},{},[12])(12)
+},{"lodash.clonedeep":2,"sdp-jingle-json":4,"util":10,"wildemitter":11}]},{},[12])(12)
 });
