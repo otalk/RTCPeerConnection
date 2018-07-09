@@ -387,7 +387,7 @@ PeerConnection.prototype.offer = function (constraints, cb) {
     if (this.pc.signalingState === 'closed') return cb('Already closed');
 
     // Actually generate the offer
-    this.pc.createOffer(
+    this.pc.createOffer( mediaConstraints ).then(
         function (offer) {
             // does not work for jingle, but jingle.js doesn't need
             // this hack...
@@ -444,8 +444,7 @@ PeerConnection.prototype.offer = function (constraints, cb) {
         function (err) {
             self.emit('error', err);
             cb(err);
-        },
-        mediaConstraints
+        }
     );
 };
 
