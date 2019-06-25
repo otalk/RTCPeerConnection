@@ -770,7 +770,7 @@ PeerConnection.prototype._answer = function (constraints, cb) {
 // Internal method for emitting ice candidates on our peer object
 PeerConnection.prototype._onIce = function (event) {
     var self = this;
-    if (event.candidate) {
+    if (event.candidate && event.candidate.candidate) {
         if (this.dontSignalCandidates) return;
         var ice = event.candidate;
 
