@@ -2,6 +2,7 @@ var util = require('util');
 var SJJ = require('sdp-jingle-json');
 var WildEmitter = require('wildemitter');
 var cloneDeep = require('lodash.clonedeep');
+var sdputils = require('./sdputils');
 
 function PeerConnection(config, constraints) {
     var self = this;
@@ -403,6 +404,17 @@ PeerConnection.prototype.offer = function (constraints, cb) {
         mediaConstraints
     ).then(
         function (offer) {
+
+          //successful callback
+
+          
+            //from AppRTC PeerConnectionClient.prototype.setLocalSdpAndNotify_() using sdputils.js
+            offer.sdp = sdputils.maybePreferAudioReceiveCodec(offer.sdp, self.params_);
+            offer.sdp = sdputils.maybePreferVideoReceiveCodec(offer.sdp, self.params_);
+            offer.sdp = sdputils.maybeSetAudioReceiveBitRate(offer.sdp, self.params_);
+            offer.sdp = sdputils.maybeSetVideoReceiveBitRate(offer.sdp, self.params_);
+            offer.sdp = sdputils.maybeRemoveVideoFec(offer.sdp, self.params_);
+            
             // does not work for jingle, but jingle.js doesn't need
             // this hack...
             var expandedOffer = {
