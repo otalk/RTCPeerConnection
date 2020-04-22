@@ -787,6 +787,8 @@ PeerConnection.prototype._onIce = function (event) {
         if (this.dontSignalCandidates) return;
         var ice = event.candidate;
 
+        // drop firefox empty string candidate
+        if (!ice.candidate.length) return;
         var expandedCandidate = {
             candidate: {
                 candidate: ice.candidate,
